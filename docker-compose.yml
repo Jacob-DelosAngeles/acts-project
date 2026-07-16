@@ -1,0 +1,33 @@
+# Local dev orchestration for the two containerizable services.
+#
+# core/ is a library (consumed by api/ and by lambda.py, not a standalone
+# service) and gui/ is an Electron desktop app (run natively with
+# `npm start` in gui/, not in a container) — neither has a service here.
+#
+# Before running:
+#   cp api/.env.example api/.env        # fill in real GCS values if you need /inputs/upload
+#   cp backend/.env.example backend/.env
+#
+# Then: docker compose up --build
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: api/Dockerfile
+    ports:
+      - "8080:8080"
+    env_file:
+      - api/.env
+    volumes:
+      - ./core:/core
+      - ./api:/app
+
+  backend:
+    build:
+      context: backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app

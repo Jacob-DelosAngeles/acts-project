@@ -1,0 +1,9 @@
+-r ./base.txt
+flake8
+mccabe
+openpyxl
+pylint
+pytest-asyncio
+pytest-cov
+pytest-mock
+tox

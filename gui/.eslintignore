@@ -1,0 +1,35 @@
+# Logs
+logs
+*.log
+
+# Runtime data
+pids
+*.pid
+*.seed
+
+# Coverage directory used by tools like istanbul
+coverage
+.eslintcache
+
+# Dependency directory
+# https://www.npmjs.org/doc/misc/npm-faq.html#should-i-check-my-node_modules-folder-into-git
+node_modules
+
+# OSX
+.DS_Store
+
+release/app/dist
+release/build
+.erb/dll
+
+.idea
+npm-debug.log.*
+*.css.d.ts
+*.sass.d.ts
+*.scss.d.ts
+
+# Vendored/bundled third-party JS, not project code
+src/renderer/js/leaflet-heat.js
+src/renderer/js/leaflet-routing-machine.js
+src/renderer/js/papaparse.min.js
+src/renderer/js/plugins.js

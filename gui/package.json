@@ -1,0 +1,74 @@
+{
+  "name": "acts-ui",
+  "productName": "Project ACTS",
+  "version": "1.0.1",
+  "description": "Project ACTS",
+  "main": "src/main/index.js",
+  "scripts": {
+    "start": "electron-forge start",
+    "package": "electron-forge package",
+    "make": "electron-forge make",
+    "build-mac": "electron-builder build --mac",
+    "build-win": "electron-builder build --win portable",
+    "publish": "electron-forge publish",
+    "lint": "cross-env NODE_ENV=development eslint . --ext .js,.jsx,.ts,.tsx"
+  },
+  "keywords": [],
+  "author": {
+    "name": "Arbyn Acosta Argabioso",
+    "email": "arbyn.acosta@gmail.com"
+  },
+  "license": "MIT",
+  "config": {
+    "forge": {
+      "packagerConfig": {},
+      "makers": [
+        {
+          "name": "@electron-forge/maker-squirrel",
+          "config": {
+            "name": "acts_ui"
+          }
+        },
+        {
+          "name": "@electron-forge/maker-zip",
+          "platforms": [
+            "darwin"
+          ],
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-deb",
+          "config": {}
+        },
+        {
+          "name": "@electron-forge/maker-rpm",
+          "config": {}
+        }
+      ]
+    }
+  },
+  "dependencies": {
+    "@material/circular-progress": "^14.0.0",
+    "@material/mwc-button": "^0.25.3",
+    "@material/tab-bar": "^14.0.0",
+    "@webcomponents/webcomponentsjs": "^2.6.0",
+    "electron-squirrel-startup": "^1.0.0",
+    "leaflet-routing-machine": "^3.2.12",
+    "leaflet.animatedmarker": "^1.0.0",
+    "papaparse": "^5.3.2",
+    "uniq": "^1.0.1"
+  },
+  "devDependencies": {
+    "@electron-forge/cli": "^6.0.0-beta.66",
+    "@electron-forge/maker-deb": "^6.0.0-beta.66",
+    "@electron-forge/maker-rpm": "^6.0.0-beta.66",
+    "@electron-forge/maker-squirrel": "^6.0.0-beta.66",
+    "@electron-forge/maker-zip": "^6.0.0-beta.66",
+    "cross-env": "^7.0.3",
+    "electron": "17.0.1",
+    "eslint": "^8.21.0",
+    "eslint-config-google": "^0.14.0",
+    "eslint-config-xo": "^0.40.0",
+    "eslint-plugin-react": "^7.28.0"
+  }
+}

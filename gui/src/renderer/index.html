@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>Project ACTS</title>
+
+    <!-- Preconnect to Google Fonts for Roboto and Material Icons. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Load the Roboto and Material Icons fonts. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons+Round&display=block">
+    <link rel="stylesheet" href="https://arbyn.argabioso.com/assets/styles/common/fonts.css">
+
+    <!-- Load custom stylesheets. -->
+    <link rel="stylesheet" href="css/plugins.css">
+    <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="css/main.css">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/css/bootstrap.min.css" rel="stylesheet"
+          integrity="sha384-iYQeCzEYFbKjA/T2uDLTpkwGzCiq6soy8tYaI1GyVh/UjpbCx/TYkiZhlZB6+fzT" crossorigin="anonymous">
+    <style>
+        .btn-login {
+            font-size: 0.9rem;
+            letter-spacing: 0.05rem;
+            padding: 0.75rem 1rem;
+        }
+
+        body {
+            background-color: #fefefe;
+        }
+
+        .modal-content {
+            border: none;
+            border-radius: 0;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f1f1f1;
+            min-width: 160px;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .dropdown-content a {
+            color: black;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #ddd;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .dropdown:hover .dropbtn {
+            background-color: #025c9c;
+        }
+        .btn-primary {
+            background-color: #00375d;
+        }
+    </style>
+</head>
+
+<body class="acts-app acts-app--map-shown">
+
+<!-- Modal -->
+<div class="modal fade " id="startModal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true"
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-xl modal-dialog-centered ">
+        <div class="modal-content ">
+            <div class="row g-0">
+                <div class="d-none d-md-flex col-md-4 col-lg-6" style="background: #00375d">
+                    <div class="" >
+                        <div id="carouselExampleSlidesOnly" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-inner">
+                                <div class="carousel-item active" >
+                                    <img src="img/acts-banner.png" class="d-block w-100 h-100" alt="..." >
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-8 col-lg-6" style="margin: auto">
+                    <div class="login d-flex align-items-center py-5">
+                        <div class="container">
+                            <div class="row">
+                                <div class="col-md-9 col-lg-8 mx-auto">
+                                    <h3 class="login-heading text-center ">WELCOME</h3>
+                                    <div class="text-center mb-4">Enter your credentials to get started.
+                                    </div>
+                                    <!-- Sign In Form -->
+                                    <form id="acts-login">
+                                        <div class="form-floating mb-3">
+                                            <input required type="text" class="form-control" id="form-name"
+                                                   placeholder="Name">
+                                            <label for="form-name">Name</label>
+                                        </div>
+                                        <div class="form-floating mb-3">
+                                            <input required type="Email" class="form-control" id="form-email"
+                                                   placeholder="Email">
+                                            <label for="form-email">Email</label>
+                                        </div>
+
+                                        <div class="d-grid">
+                                            <button id="btn-get-started" class="btn btn-lg btn-primary btn-login text-uppercase fw-bold mb-2"
+                                                    type="submit">GET STARTED
+                                            </button>
+
+                                            <button disabled id="btn-loading" class="btn btn-lg btn-primary btn-login text-uppercase fw-bold mb-2"
+                                                    type="button">
+                                                    <span class="spinner-border spinner-border-sm"></span>
+                                                    Please wait...
+                                            </button>
+                                        </div>
+
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<header id="acts-appbar" class="mdc-top-app-bar mdc-top-app-bar--dense">
+    <div class="mdc-top-app-bar__row">
+        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-start">
+            <img id="acts-logo" src="img/logo.png" alt="ACTS Logo">
+            <span class="mdc-top-app-bar__title">Project <strong>ACTS</strong></span>
+        </section>
+        <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
+        </section>
+    </div>
+</header>
+
+<div id="acts-actions">
+    <div class="dropdown">
+        <button class="mdc-fab mdc-fab--extended mdc-fab--mini dropbtn">
+            <div class="mdc-fab__ripple"></div>
+            <span class="mdc-fab__icon material-icons-round icon">download</span>
+            <span class="mdc-fab__label">Download Templates</span>
+        </button>
+        <div class="dropdown-content">
+            <a id="acts-upload-survey-button" href="#">Survey Input</a>
+            <a id="acts-upload-od-button" href="#">Origin & Destination</a>
+            <a id="acts-upload-dc-button" href="#">Data Choice</a>
+        </div>
+    </div>
+
+
+    <button id="acts-upload-input-button" class="mdc-fab mdc-fab--extended mdc-fab--mini">
+        <div class="mdc-fab__ripple"></div>
+        <span class="mdc-fab__icon material-icons-round icon">file_upload</span>
+        <span class="mdc-fab__label">Upload input files</span>
+    </button>
+    <button id="acts-input-file" class="mdc-fab mdc-fab--extended mdc-fab--mini hidden">
+        <div class="mdc-fab__ripple"></div>
+        <span class="mdc-fab__icon material-icons-round icon">file_open</span>
+        <span class="mdc-fab__label">Preview Input File</span>
+    </button>
+
+    <button id="acts-run-model-button" class="mdc-fab mdc-fab--extended mdc-fab--mini hidden">
+        <div class="mdc-fab__ripple"></div>
+        <span class="mdc-fab__icon material-icons-round icon">arrow_forward_ios</span>
+        <span class="mdc-fab__label">Run Model</span>
+    </button>
+
+</div>
+
+<!-- Animation Card -->
+<div id="acts-filters-container" class="mdc-card hidden">
+    <div class="mdc-card__primary-action">
+        <div class="mdc-card__ripple"></div>
+
+        <button class="collapsible">Animation</button>
+        <div class="content">
+
+            <!-- ===TABS FOR FILTER VARIABLES=== -->
+            <div class="tab">
+                <button class="tablinks active" onclick="openTab(event, 'Socio')">Socio-Demographic</button>
+                <button class="tablinks" onclick="openTab(event, 'Travel')">Travel</button>
+                <button class="tablinks" onclick="openTab(event, 'Scenario')">Scenario</button>
+                <button class="tablinks" onclick="openTab(event, 'Mapping')">Mapping</button>
+            </div>
+            <div id="Socio" class="tabcontent first-tab-content">
+                <div class="filters-checkbox-container" id="socio-checkbox-container">
+                    <!-- Dynamic filters -->
+                </div>
+            </div>
+
+            <div id="Travel" class="tabcontent">
+                <div class="filters-checkbox-container" id="travel-checkbox-container">
+                     <!-- Dynamic filters -->
+                </div>
+            </div>
+
+            <div id="Scenario" class="tabcontent">
+                <div class="filters-checkbox-container" id="scenario-checkbox-container">
+                     <!-- Dynamic filters -->
+                </div>
+            </div>
+            <div id="Mapping" class="tabcontent">
+                <div id="test-list">
+
+                </div>
+                <!-- Mapping Checkbox -->
+                <div class="filters-checkbox-container">
+                    <ul class="checkbox-main">
+                        <li>
+                            <label class="checkbox-main">Heatmap</label>
+                            <ul class="checkbox-sub" id="heatmap">
+                                <li><input id="cbk-heatmap" type="checkbox" name="checkbox"/>HeatMap</label></li>
+                            </ul>
+                        </li>
+                    </ul>
+
+                    <ul class="checkbox-main">
+                        <li>
+                            <label class="checkbox-main">Desire Lines</label>
+                            <ul class="checkbox-sub" id="desire_lines"
+                                style="max-height:350px; overflow:hidden; overflow-y:scroll; max-width:400px;overflow-x:scroll;">
+                            </ul>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- ========================== -->
+        </div>
+    </div>
+
+    <!-- Start/stop animation -->
+    <div class="mdc-card__actions filters-btn-container">
+        <div class="mdc-card__action-buttons">
+            <button type="button" style="border: none;" class="btn btn-outline-light" data-bs-toggle="tooltip" data-bs-placement="top" title="Reset Filters">
+                <img id="acts-animation-reset" src="img/reset.png" alt="Reset">
+              </button>
+                <!-- <button id="acts-animation-reset" class="mdc-button mdc-card__action mdc-card__action--button">
+                    <div class="mdc-button__ripple"></div>
+                    <img id="acts-animation-reset" src="img/reset.png" alt="Reset">
+                </button> -->
+            <button id="acts-animation-start" class="mdc-button mdc-card__action mdc-card__action--button">
+                <div class="mdc-button__ripple"></div>
+                <img id="acts-animation-play" src="img/play.png" alt="Play">
+            </button>
+            <button id="acts-animation-stop" class="mdc-button mdc-card__action mdc-card__action--button">
+                <div class="mdc-button__ripple"></div>
+                <img id="acts-animation-cancel" src="img/stop.png" alt="Stop">
+            </button>
+        </div>
+    </div>
+</div>
+
+<main>
+    <section class="acts-section">
+        <div id="acts-map"></div>
+    </section>
+</main>
+
+<div id="acts-upload-input-dialog" class="mdc-dialog">
+    <div class="mdc-dialog__container">
+        <div class="mdc-dialog__surface"
+             role="alertdialog"
+             aria-modal="true"
+             aria-labelledby="my-dialog-title"
+             aria-describedby="my-dialog-content">
+            <div class="mdc-dialog__title">Upload input files</div>
+            <div class="mdc-dialog__content">
+                <form id="acts-upload-input-dialog__form">
+                    <h5>Survey Input File</h5>
+                    <input type="file" id="acts-upload-input-dialog__file-input" name="file" accept=".csv">
+                    <hr>
+                    <h5>Origin-Destination File</h5>
+                    <input type="file" id="acts-upload-input-dialog__file-input-od" name="od" accept=".csv">
+                    <hr>
+                    <h5>Data Choice Set File</h5>
+                    <input type="file" id="acts-upload-input-dialog__file-input-choice" name="choice" accept=".csv">
+                </form>
+            </div>
+            <div class="mdc-dialog__actions">
+                <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="cancel">
+                    <div class="mdc-button__ripple"></div>
+                    <span class="mdc-button__label">Cancel</span>
+                </button>
+                <button type="button" class="mdc-button mdc-dialog__button" data-mdc-dialog-action="upload">
+                    <div class="mdc-button__ripple"></div>
+                    <span class="mdc-button__label">Upload</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="mdc-dialog__scrim"></div>
+</div>
+</section>
+
+<aside id="acts-status-snackbar" class="mdc-snackbar mdc-snackbar--leading">
+    <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
+        <div class="mdc-snackbar__label" aria-atomic="false"></div>
+        <div class="mdc-snackbar__actions" aria-atomic="true">
+            <button type="button" class="mdc-button mdc-snackbar__close-button mdc-snackbar__action">
+                <div class="mdc-button__ripple"></div>
+                <span class="mdc-button__label mdc-fab__icon material-icons-round icon">close</span>
+            </button>
+        </div>
+    </div>
+</aside>
+
+<footer>
+    <div id="acts-watermark-wrapper">
+        <img id="acts-watermark" src="img/acts-footer-logo.png">
+    </div>
+</footer>
+<script src="js/plugins.js"></script>
+<script src="js/leaflet-heat.js"></script>
+<script src="js/constants.js"></script>
+<script src="js/papaparse.min.js"></script>
+<script src="js/leaflet-routing-machine.js"></script>
+<script src="js/graphhopper.js"></script>
+<script src="js/animatedMarker.js"></script>
+<script src="js/map.js"></script>
+<script src="js/index.js"></script>
+<script src="js/events/model.js"></script>
+<script src="js/nested-checkbox.js"></script>
+<script src="js/events/upload.js"></script>
+<script src="js/collapsible.js"></script>
+<script src="js/filters-tab.js"></script>
+<script src="js/agent.js"></script>
+<script src="js/desire-lines.js"></script>
+<script src="js/heatmap.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.2.1/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-u1OknCvxWvY5kfmNBILK2hRnQC3Pr17a+RTT6rIHI7NnikvbZlHgTPOOmMi466C8"
+        crossorigin="anonymous"></script>
+<script src="js/get_start.js"></script>
+<script src="js/events/download.js"></script>
+
+<!-- Add new JavaScript modules after this comment -->
+</body>
+</html>

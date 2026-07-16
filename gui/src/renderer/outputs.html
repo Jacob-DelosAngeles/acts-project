@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <title>Project ACTS &#124; Model Output</title>
+
+    <!-- Preconnect to Google Fonts for Roboto and Material Icons. -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+    <!-- Load the Roboto and Material Icons fonts. -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Material+Icons+Round&display=block">
+    <link rel="stylesheet" href="https://arbyn.argabioso.com/assets/styles/common/fonts.css">
+
+    <!-- Load custom stylesheets. -->
+    <link rel="stylesheet" href="css/plugins.css">
+    <link rel="stylesheet" href="css/map.css">
+    <link rel="stylesheet" href="css/main.css">
+  </head>
+
+  <body>
+    <!-- <div role="progressbar" id="acts-loading-indicator" class="mdc-linear-progress mdc-linear-progress--indeterminate" aria-label="Progress Bar" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0">
+      <div class="mdc-linear-progress__buffer">
+        <div class="mdc-linear-progress__buffer-bar"></div>
+        <div class="mdc-linear-progress__buffer-dots"></div>
+      </div>
+      <div class="mdc-linear-progress__bar mdc-linear-progress__primary-bar">
+        <span class="mdc-linear-progress__bar-inner"></span>
+      </div>
+      <div class="mdc-linear-progress__bar mdc-linear-progress__secondary-bar">
+        <span class="mdc-linear-progress__bar-inner"></span>
+      </div>
+    </div> -->
+
+    <div role="progressbar" id="acts-loading-indicator" class="mdc-circular-progress mdc-circular-progress--indeterminate" style="width:48px;height:48px;" aria-label="Progress Bar" aria-valuemin="0" aria-valuemax="1" aria-valuenow="0">
+      <div class="mdc-circular-progress__indeterminate-container">
+        <div class="mdc-circular-progress__spinner-layer">
+          <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-left">
+            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+            </svg>
+          </div>
+          <div class="mdc-circular-progress__gap-patch">
+            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="3.2"/>
+            </svg>
+          </div>
+          <div class="mdc-circular-progress__circle-clipper mdc-circular-progress__circle-right">
+            <svg class="mdc-circular-progress__indeterminate-circle-graphic" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="24" cy="24" r="18" stroke-dasharray="113.097" stroke-dashoffset="56.549" stroke-width="4"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="xspreadsheet"></div>
+
+    <div id="x-spreadsheet-save-btn" class="hidden" data-tooltip="Save">
+      <a href="#" onclick="export_xlsx();"><span class="mdc-fab__icon material-icons-round icon">save</span></a>
+    </div>
+
+    <aside id="acts-status-snackbar" class="mdc-snackbar mdc-snackbar--leading">
+      <div class="mdc-snackbar__surface" role="status" aria-relevant="additions">
+        <div class="mdc-snackbar__label" aria-atomic="false"></div>
+        <div class="mdc-snackbar__actions" aria-atomic="true">
+          <button type="button" class="mdc-button mdc-snackbar__close-button mdc-snackbar__action">
+            <div class="mdc-button__ripple"></div>
+            <span class="mdc-button__label mdc-fab__icon material-icons-round icon">close</span>
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Special characters included, I'd prefer this in its separate file -->
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
+    <script src="js/plugins.js"></script>
+    <script src="js/constants.js"></script>
+    <script src="js/map.js"></script>
+    <script src="js/papaparse.min.js"></script>
+
+    <script src="js/outputs.js"></script>
+
+    <!-- Add new JavaScript modules after this comment -->
+  </body>
+</html>

@@ -1,0 +1,4 @@
+runtime: python39
+
+env_variables:
+    CLOUD_STORAGE_INPUT_FILES: up-project-acts-input-files

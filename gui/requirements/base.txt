@@ -1,0 +1,3 @@
+flask
+lxml
+cryptography>=2.6.1, <=3.4.8

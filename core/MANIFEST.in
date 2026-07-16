@@ -1,0 +1,5 @@
+# This is required by tox and setup.py so that the requirements directory and
+# all of its contents will be included in the tox environment or in PyPI
+include requirements/**.txt
+include requirements.txt
+include acts/core/dataset/parquets/**.parquet

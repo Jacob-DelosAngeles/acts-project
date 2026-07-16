@@ -1,0 +1,36 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# Python (core/, api/)
+__pycache__/
+*.pyc
+*.egg-info/
+.eggs/
+.pytest_cache/
+.venv/
+venv/
+htmlcov/
+.coverage
+
+# Node / Electron (gui/)
+node_modules/
+gui/out/
+gui/dist/
+
+# PHP / Laravel (backend/)
+backend/vendor/
+backend/.env
+backend/bootstrap/cache/*.php
+!backend/bootstrap/cache/.gitignore
+backend/storage/*.key
+backend/node_modules/
+
+# Editors
+.vscode/
+.idea/
+
+# Contains a since-redacted Mapbox token baked into the original zip's
+# map.js — kept on disk for reference, not pushed. See
+# gui/src/renderer/js/constants.js for the redaction.
+archive/acts-gui-main.zip

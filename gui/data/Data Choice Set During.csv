@@ -1,0 +1,84 @@
+﻿Variable Code,Variable Name,Category,Coding
+Socio-Demographic & Household Characteristics,,,
+GEN,Gender of the respondent,Female,0
+,,Male,1
+POS,Household position of the respondent,Eldest/Youngest/Mother,0
+,,Father,1
+TRAVEL,Do you travel during pandemic? ,No,0
+,,Yes,1
+AGED,Age of the respondent during pandemic,15- 50,0
+,,>50,1
+MARD,Marital status of the respondent during pandemic,Single/Separated/ Widow/Widower,0
+,,Married/Live-in partner,1
+EDUCD,Educational attainment of the respondent during pandemic,Elementary/High school/Undergraduate,0
+,,Vocational/College Graduate,1
+MEMD,Number of household members during pandemic,≤4,0
+,,>4,1
+NCHILDD,Number of children less than or equal to 10 years old during pandemic,0-1,0
+,,>1,1
+NSENIORD,Number of elderly members aged 60 and above during pandemic,None,0
+,,≥ 1,1
+NDISABLED,Number of person(s) with disability during pandemic,None,0
+,,≥ 1,1
+OVEHD,Has own vehicle? during pandemic,No ,0
+,,Yes,1
+NVEHD,Number of vehicle(s) during pandemic,None (0)/NA,0
+,,≥ 1,1
+HOUSED,House ownership during pandemic,Others (Gov’t-owned/Pawned/Rented/Living with relatives/friends,0
+,,Owned,1
+YEARSD,Years living in the area during pandemic,≤ 10 years,0
+,,More than 10 years,1
+OCCUD,Occupation during pandemic,Unemployed,0
+,,Employed,1
+OSETUPD,Occupation set-up during pandemic,Others/NA,0
+,,Work from home,1
+,,Mixed set-up ,2
+,,Office/field ,3
+MINCOMED,Monthly income during pandemic,"≤ 10,000",0
+,,"> 10,000",1
+Travel Characteristics,,,
+ACT (FM),Dahilan ng biyahe (First Mile),Non-work activities,0
+,,Trabaho/Eskwelahan,1
+TRVFREQ,Dalas ng biyahe ,1x – 3x a week,0
+,,> 3x a week,1
+TIME (FM),Oras ng pag-alis (First-Mile),≤ 9am,0
+,,>5PM,1
+EXPENSE (FM),Travel expense (First-Mile),0-20,0
+,,>20,1
+TRAVTIME (FM),Travel time (First-Mile),1min - 20mins,0
+,,>20 mins,1
+MODE (FM),Pamamaraan o sinakyan (First-Mile),Walking,0
+,,Public Transportation,1
+,,Owned/Private Vehicle,2
+DEST (FM),Destination (First-Mile),Others (Hospital/Relatives/Church),0
+,,Workplace/Brgy. Hall/School,1
+,,Grocery/Shopping Mall/Palengke,2
+ORIG (LM),Origin (Last-Mile),Others (Hospital/Relatives/Church),0
+,,Workplace/Brgy. Hall/School,1
+,,Grocery/Shopping Mall/Palengke,2
+TIME (LM),Oras ng pag-alis (Last-Mile),≤ 9am,0
+,,>5PM,1
+EXPENSE (LM),Travel expense (Last-Mile),0-20,0
+,,>20,1
+TRAVTIME (LM),Travel time (Last-Mile),1min - 20mins,0
+,,>20 mins,1
+MODE (LM),Pamamaraan o sinakyan (Last-Mile),Walking,0
+,,Public Transportation,1
+,,Owned/Private Vehicle,2
+Scenarios,,,
+TAL1,"Tingin ko, nakakatakot lumabas o bumiyahe kapag tayo ay nasa ALERT LEVEL 1.",No,0
+,,Yes,1
+TAL2,"Tingin ko, nakakatakot lumabas o bumiyahe kapag tayo ay nasa ALERT LEVEL 2.",No,0
+,,Yes,1
+TAL3,"Tingin ko, nakakatakot lumabas o bumiyahe kapag tayo ay nasa ALERT LEVEL 3.",No,0
+,,Yes,1
+TAL4,"Tingin ko, nakakatakot lumabas o bumiyahe kapag tayo ay nasa ALERT LEVEL 4.",No,0
+,,Yes,1
+TAL5,"Tingin ko, nakakatakot lumabas o bumiyahe kapag tayo ay nasa ALERT LEVEL 5.",No,0
+,,Yes,1
+VACC,Are you vaccinated,Hindi,0
+,,Oo,1
+VACCSTAT,Vaccination status,Unvaccinated,0
+,,Partially Vaccinated,1
+,,Fully Vaccinated,2
+,,Booster shot,3

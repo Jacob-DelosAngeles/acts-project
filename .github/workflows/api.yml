@@ -1,0 +1,32 @@
+name: api
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - "core/**"
+      - ".github/workflows/api.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - "core/**"
+      - ".github/workflows/api.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      CLOUD_STORAGE_INPUT_FILES: ci-dummy-bucket
+    steps:
+      - uses: actions/checkout@v4
+
+      # Same Python 3.10 ceiling as core/ — api/ installs core/ locally.
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+          cache: pip
+
+      - run: pip install -r requirements.txt -r requirements/dev.txt
+        working-directory: api
+      - run: pytest
+        working-directory: api
