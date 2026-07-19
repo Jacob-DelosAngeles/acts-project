@@ -24,6 +24,15 @@ services:
       # Python 3.10 — do not bump this without checking the model math.
       - key: PYTHON_VERSION
         value: 3.10.11
+      # Keep model fitting inside the 512MB free tier: run the VIF filter in a
+      # single process (no per-core dataframe copies) and stop numpy/scipy from
+      # spawning a thread pool per BLAS call.
+      - key: ACTS_VIF_N_JOBS
+        value: "1"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: OPENBLAS_NUM_THREADS
+        value: "1"
       # Cloud Storage bucket name for /inputs/upload. Safe to leave unset on a
       # first deploy: the app still boots and /osm/ways, /inputs/load and
       # /models/run all work; only uploads return 503 until this is set.

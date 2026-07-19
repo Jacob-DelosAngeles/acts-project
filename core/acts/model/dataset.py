@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import time
 
 from statsmodels.stats.outliers_influence import variance_inflation_factor
@@ -17,13 +18,25 @@ __all__ = [
 ]
 
 
-def apply_collinearity_filter(X, vif_threshold: float = 10.0):
+# How many parallel jobs the VIF computation may fork. Defaults to -1 (all
+# cores) for local runs, but memory-constrained hosts should set
+# ACTS_VIF_N_JOBS=1: joblib forks one worker per core, each copying the
+# dataframe, which blows past small memory limits (e.g. a 512MB container).
+_DEFAULT_VIF_N_JOBS = int(os.environ.get("ACTS_VIF_N_JOBS", "-1"))
+
+
+def apply_collinearity_filter(
+    X, vif_threshold: float = 10.0, n_jobs: int | None = None
+):
+    if n_jobs is None:
+        n_jobs = _DEFAULT_VIF_N_JOBS
+
     for i in X.columns:
         if X[i].nunique() == 1:
             X = X.drop(columns=i)
 
     columns = list(X.columns)
-    vifs = joblib.Parallel(n_jobs=-1, verbose=0)(
+    vifs = joblib.Parallel(n_jobs=n_jobs, verbose=0)(
         joblib.delayed(variance_inflation_factor)(
             X[columns].values, i
         ) for i in range(X[columns].shape[1])
