@@ -29,6 +29,7 @@ npm-debug.log.*
 *.scss.d.ts
 
 # Vendored/bundled third-party JS, not project code
+src/renderer/js/graphhopper.js
 src/renderer/js/leaflet-heat.js
 src/renderer/js/leaflet-routing-machine.js
 src/renderer/js/papaparse.min.js

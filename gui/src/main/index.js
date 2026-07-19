@@ -23,18 +23,18 @@ const createWindow = async () => {
   });
 
   // Set new window properties
-  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+  mainWindow.webContents.setWindowOpenHandler(({url}) => {
     return {
       action: 'allow',
       overrideBrowserWindowOptions: {
         webPreferences: {
           defaultFontFamily: {
-            standard: 'Roboto'
-          }
-        }
-      }
-    }
-  })
+            standard: 'Roboto',
+          },
+        },
+      },
+    };
+  });
 
   // and load the index.html of the app.
   mainWindow.loadFile(getHtmlPath('index.html'));
@@ -56,7 +56,7 @@ const createWindow = async () => {
     mainWindow = null;
   });
 
-  mainWindow.setMenu(null)
+  mainWindow.setMenu(null);
   // show/hide console
   // mainWindow.webContents.openDevTools()
 };

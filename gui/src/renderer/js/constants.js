@@ -3,7 +3,7 @@
 /* eslint no-unused-vars: off */
 
 // Create namespace for ACTS
-var ACTS = {
+const ACTS = {
   store: {},
   pages: {},
   apis: {},
@@ -11,7 +11,7 @@ var ACTS = {
   ui: {
     mdc: {},
   },
-}
+};
 
 ACTS.pages.HOME_PAGE_FILE = 'index.html';
 ACTS.pages.INPUTS_PAGE_FILE = 'inputs.html';
