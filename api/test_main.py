@@ -212,6 +212,37 @@ class TestRunModels:
         for entry in response.json["results"].values():
             assert entry == {"overview": [], "analysis": [], "correlation": []}
 
+    def test__run_models__accepts_multipart_upload(self, mocker):
+        # The desktop app posts the CSV directly (no cloud storage) — verify
+        # the multipart "file" path is taken and returns all four models.
+        mock_result = mocker.MagicMock()
+        mock_result.summary.return_value = None
+        for fn_name in (
+            "TravelDecisionMLogit",
+            "ActivityChoiceMLogit",
+            "DestinationChoiceMLogit",
+            "ModeChoiceMLogit",
+        ):
+            mocker.patch(
+                f"main.model.{fn_name}", return_value=(mock_result, None)
+            )
+
+        response = self.client.post(
+            "/models/run",
+            data={"file": (io.BytesIO(b"a,b\n1,2\n"), "survey.csv")},
+            content_type="multipart/form-data",
+        )
+
+        assert response.status_code == 200
+        assert set(response.json["results"].keys()) == {
+            "travel", "activity", "dest", "mode",
+        }
+
+    def test__run_models__no_input__returns_400(self):
+        response = self.client.post("/models/run", json={})
+
+        assert response.status_code == 400
+
     def test__run_models__real_fit_serializes_summary_tables(self, mocker):
         # Only the activity-choice model runs for real here (against core/'s
         # own bundled sample data) to prove _summarize() correctly turns a

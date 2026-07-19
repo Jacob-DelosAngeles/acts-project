@@ -141,15 +141,29 @@ def load() -> dict:
 
 @app.route("/models/run", methods=["POST"])
 def run_models() -> dict:
-    """Run the four discrete-choice models against an uploaded survey file.
+    """Run the four discrete-choice models against a survey CSV.
 
     Replaces core/'s lambda.py (AWS Lambda + S3, run async per-file) with a
-    synchronous endpoint: given a fileurl (as returned by /inputs/upload),
-    fit all four models and return their summaries directly in the
-    response instead of writing parquet files to S3.
+    synchronous endpoint that fits all four models and returns their
+    summaries directly in the response.
+
+    The CSV can arrive two ways:
+      * as a multipart upload (field "file") — the desktop app sends it this
+        way, so no cloud storage is needed at all; or
+      * as a "fileurl" in a JSON body — the storage-backed path (a URL the
+        server can read), kept for compatibility.
     """
-    file_url = request.get_json(force=True).get("fileurl")
-    df = pd.read_csv(file_url)
+    uploaded_file = request.files.get("file")
+    if uploaded_file is not None:
+        df = pd.read_csv(uploaded_file)
+    else:
+        file_url = (request.get_json(silent=True) or {}).get("fileurl")
+        if not file_url:
+            return {
+                "error": "Provide a CSV as multipart 'file' or JSON 'fileurl'.",
+                "status": {"code": 400, "message": "Bad Request"},
+            }, 400
+        df = pd.read_csv(file_url)
 
     model_fns = {
         "travel": model.TravelDecisionMLogit,
