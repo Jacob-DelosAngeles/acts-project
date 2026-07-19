@@ -1,3 +1,7 @@
+# Build output from `electron-forge make`/`package` (bundles a copy of the
+# app plus minified vendor JS — never lint it).
+out/
+
 # Logs
 logs
 *.log
