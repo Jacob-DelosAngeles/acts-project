@@ -12,7 +12,12 @@ services:
     # google-cloud-storage and gunicorn. The full repo is checked out, so the
     # relative path to ../core resolves from the api/ root dir.
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn main:app
+    # Fitting the four discrete-choice models is slow (tens of seconds, more
+    # on the free tier's shared CPU), so raise gunicorn's 30s default worker
+    # timeout well above it. One worker keeps memory within the 512MB free
+    # tier; the extra threads let health checks respond while a fit is running
+    # so Render doesn't mark the instance unhealthy mid-request.
+    startCommand: gunicorn main:app --workers 1 --threads 8 --timeout 300
     healthCheckPath: /
     envVars:
       # The old dependency pins (pandas 1.x, statsmodels 0.13.x) only build on
