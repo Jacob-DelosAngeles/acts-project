@@ -23,62 +23,22 @@ document.addEventListener('DOMContentLoaded', () => {
   ACTS.ui.statusSnackbar = MDCSnackbar.attachTo(
       document.querySelector('#acts-status-snackbar'));
 
-  // Complete the API URL given the current users ID
-  const filename = localStorage.getItem(ACTS.store.INPUT_FILE_KEY);
-  const apiURL = ACTS.apis.GET_OUTPUTS_ENDPOINT + encodeURIComponent(
-      ACTS.user + '/' + filename,
-  );
+  // Model results are computed on the map page (Run Model) and stashed in
+  // localStorage — this page just renders them, no server round-trip.
+  const raw = localStorage.getItem(ACTS.store.MODEL_RESULTS_KEY);
+  if (!raw) {
+    ACTS.ui.loadingIndicator.close();
+    ACTS.ui.statusSnackbar.labelText =
+        'No model results yet. Run a model from the map page first.';
+    ACTS.ui.statusSnackbar.open();
+    return;
+  }
 
-  console.log('Fetching model output data ...');
-  fetch(apiURL, {
-    method: 'GET',
-    headers: {
-      'Accept': 'application/json',
-      'Content-Type': 'application/json',
-    },
-  })
-      .then((response) => {
-        console.success('Fetching model output data ... done!');
-        return response.json();
-      })
-      .then((data) => {
-        const processedData = [];
-
-        // let summary = getStatsSummary();
-        getStatsSummary().then((x)=> {
-          processedData.push(
-              {name: 'Summary', rows: convertToSpreadsheetObject(x)});
-          for (const key in data) {
-            if (data.hasOwnProperty(key)) {
-              const subData = data[key];
-              // console.log(subData);
-              if (subData && Object.keys(subData).length !== 0) {
-                processedData.push(
-                    {
-                      name: key,
-                      rows: convertToSpreadsheetObject(subData),
-                    },
-                );
-              }
-            }
-          }
-
-          // console.log(processedData);
-          ACTS.ui.loadingIndicator.close();
-          xspr = x_spreadsheet('#xspreadsheet')
-              .loadData(processedData); // load data
-
-          ACTS.ui.saveButton.removeClass('hidden');
-        });
-      })
-      .catch((error) => {
-        console.error('Fetching model output data ... failed!');
-        console.log('API Response:', error);
-
-        ACTS.ui.statusSnackbar.labelText = `Unable to show the model ` +
-            `output! Please verify the input data and re-upload`;
-        ACTS.ui.statusSnackbar.open();
-      });
+  buildOutputSheets(JSON.parse(raw)).then((sheets) => {
+    ACTS.ui.loadingIndicator.close();
+    xspr = x_spreadsheet('#xspreadsheet').loadData(sheets);
+    ACTS.ui.saveButton.removeClass('hidden');
+  });
 });
 
 
@@ -152,15 +112,93 @@ function readFile(fileURL) {
 }
 
 /**
- * Builds the full stats summary for the Outputs page spreadsheet.
- * @return {Promise<Object>} Resolves with the summary spreadsheet data.
+ * Converts a list of record objects (one per table row) into the row/cell
+ * shape convertToSpreadsheetObject expects, using the object keys as a
+ * header row.
+ * @param {Object[]} records - Rows as {column: value} objects.
+ * @return {Object} Rows keyed by index, each {cells: {col: value}}.
  */
-async function getStatsSummary() {
-  const filename = localStorage.getItem(ACTS.store.INPUT_FILE_KEY);
-  const fileURL = ACTS.apis.PUBLIC_S3_URL + encodeURIComponent(
-      ACTS.user + '/' + filename,
-  );
+function recordsToSheetRows(records) {
+  const rows = {};
+  if (!records || records.length === 0) {
+    return rows;
+  }
 
-  const res = await readFile(fileURL);
-  return res;
+  const headers = Object.keys(records[0]);
+  rows['0'] = {cells: {}};
+  headers.forEach((header, col) => {
+    rows['0']['cells'][String(col)] = header;
+  });
+
+  records.forEach((record, index) => {
+    const rowKey = String(index + 1);
+    rows[rowKey] = {cells: {}};
+    headers.forEach((header, col) => {
+      rows[rowKey]['cells'][String(col)] = record[header];
+    });
+  });
+
+  return rows;
+}
+
+/**
+ * Builds the Outputs spreadsheet: a value-count summary of the uploaded
+ * survey plus one sheet per non-empty model table (overview/analysis/
+ * correlation for each of the four models).
+ * @param {Object} results - The /models/run "results" object.
+ * @return {Promise<Object[]>} Resolves with x-spreadsheet sheet definitions.
+ */
+async function buildOutputSheets(results) {
+  const sheets = [];
+
+  // Data summary straight from the locally-uploaded survey CSV.
+  const surveyUrl = localStorage.getItem('SURVEY_FILE_URL');
+  if (surveyUrl) {
+    try {
+      const summary = await readFile(surveyUrl);
+      sheets.push(
+          {name: 'Data Summary', rows: convertToSpreadsheetObject(summary)});
+    } catch (err) {
+      console.error('Could not build data summary:', err);
+    }
+  }
+
+  const modelLabels = {
+    travel: 'Travel',
+    activity: 'Activity',
+    dest: 'Destination',
+    mode: 'Mode',
+  };
+  const tableLabels = {
+    overview: 'Overview',
+    analysis: 'Analysis',
+    correlation: 'Correlation',
+  };
+
+  for (const [modelKey, modelLabel] of Object.entries(modelLabels)) {
+    const model = results[modelKey];
+    if (!model) {
+      continue;
+    }
+    for (const [tableKey, tableLabel] of Object.entries(tableLabels)) {
+      const records = model[tableKey];
+      if (!records || records.length === 0) {
+        continue;
+      }
+      sheets.push({
+        name: `${modelLabel} - ${tableLabel}`,
+        rows: convertToSpreadsheetObject(recordsToSheetRows(records)),
+      });
+    }
+  }
+
+  if (sheets.length === 0) {
+    sheets.push({
+      name: 'Results',
+      rows: convertToSpreadsheetObject(recordsToSheetRows(
+          [{message: 'No significant model results for this dataset.'}])),
+    });
+  }
+
+  return sheets;
 }

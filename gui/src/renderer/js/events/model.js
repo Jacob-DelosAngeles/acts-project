@@ -4,11 +4,52 @@ document.addEventListener('DOMContentLoaded', () => {
   runModelOnModelButtonClick();
 });
 
-/** Wires the "Run Model" button to open the outputs page. */
+/**
+ * Wires the "Run Model" button: POST the uploaded survey CSV straight to the
+ * API's /models/run, stash the returned model summaries, then open the
+ * Outputs page to render them. No cloud storage is involved — the CSV goes
+ * from the local blob directly to the server.
+ */
 function runModelOnModelButtonClick() {
-  // Show loading dialog when run model button is clicked
-  ACTS.ui.runModelButton.on('click', () => {
-    window.open(ACTS.pages.OUTPUTS_PAGE_FILE);
+  ACTS.ui.runModelButton.on('click', async () => {
+    const surveyUrl = localStorage.getItem('SURVEY_FILE_URL');
+    if (!surveyUrl) {
+      ACTS.ui.statusSnackbar.labelText =
+          'Please upload a Survey Input file first.';
+      ACTS.ui.statusSnackbar.open();
+      return;
+    }
+
+    ACTS.ui.statusSnackbar.labelText =
+        'Running models on the server... this can take up to a minute.';
+    ACTS.ui.statusSnackbar.open();
+
+    try {
+      const blob = await (await fetch(surveyUrl)).blob();
+      const formData = new FormData();
+      formData.append('file', blob, 'survey.csv');
+
+      const response = await fetch(ACTS.apis.RUN_MODELS_ENDPOINT, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!response.ok) {
+        throw new Error('Server responded ' + response.status);
+      }
+
+      const payload = await response.json();
+      localStorage.setItem(
+          ACTS.store.MODEL_RESULTS_KEY,
+          JSON.stringify(payload.results || {}),
+      );
+
+      window.open(ACTS.pages.OUTPUTS_PAGE_FILE);
+    } catch (err) {
+      console.error('Model run failed:', err);
+      ACTS.ui.statusSnackbar.labelText =
+          'Model run failed. Check your connection and try again.';
+      ACTS.ui.statusSnackbar.open();
+    }
   });
 }
 

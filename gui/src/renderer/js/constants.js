@@ -22,6 +22,9 @@ ACTS.store.INPUT_FILE_KEY = 'input-file';
 ACTS.store.LOCAL_FILE_KEY = 'input-data';
 ACTS.store.OD_FILE_KEY = 'od-data';
 ACTS.store.CHOICE_FILE_KEY = 'choice-data';
+// Model results returned by the API's /models/run, stashed by the map page
+// for the Outputs page to render (no cloud storage round-trip).
+ACTS.store.MODEL_RESULTS_KEY = 'model-results';
 
 // Unique ID for each user
 ACTS.user = generateUserID();
