@@ -1,0 +1,30 @@
+# Render Blueprint for Project ACTS.
+# Deploys the Flask API (api/) as a free web service.
+# Import via the Render dashboard: New + -> Blueprint -> pick this repo.
+# Spec: https://render.com/docs/blueprint-spec
+services:
+  - type: web
+    name: acts-api
+    runtime: python
+    plan: free
+    rootDir: api
+    # requirements.txt pulls in `-e ../core` (the modeling engine) plus Flask,
+    # google-cloud-storage and gunicorn. The full repo is checked out, so the
+    # relative path to ../core resolves from the api/ root dir.
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn main:app
+    healthCheckPath: /
+    envVars:
+      # The old dependency pins (pandas 1.x, statsmodels 0.13.x) only build on
+      # Python 3.10 — do not bump this without checking the model math.
+      - key: PYTHON_VERSION
+        value: 3.10.11
+      # Cloud Storage bucket name for /inputs/upload. Safe to leave unset on a
+      # first deploy: the app still boots and /osm/ways, /inputs/load and
+      # /models/run all work; only uploads return 503 until this is set.
+      - key: CLOUD_STORAGE_INPUT_FILES
+        sync: false
+      # Service-account key JSON (the whole key file pasted as one value).
+      # Only needed once storage (Firebase/GCS) is wired up.
+      - key: GOOGLE_APPLICATION_CREDENTIALS_JSON
+        sync: false

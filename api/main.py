@@ -1,32 +1,66 @@
 """ACTS API
 
-ACTS API is a GCP-deployed Backend API for Project ACTS.
-It contains all the internal API endpoints that the application uses.
+ACTS API is a Backend API for Project ACTS. It contains all the internal
+API endpoints that the application uses.
 """
 
 from __future__ import annotations
 
+import json
 import os
+from typing import Union
 
 from flask import Flask
 from flask import request
 from google.cloud import storage
+from google.oauth2 import service_account
 import pandas as pd
-import urllib
 
-from acts.core import logging
 import acts.core as acts
+import acts.model as model
+from acts.core import logging
 
 
-# Configure this environment variable via app.yaml
-CLOUD_STORAGE_INPUT_FILES = os.environ["CLOUD_STORAGE_INPUT_FILES"]
+# Configure this via app.yaml (GAE) or your host's env var settings (Render,
+# etc). Read lazily (not a hard os.environ[...] at import) so the app still
+# boots when storage isn't wired up yet — e.g. a fresh Render deploy before
+# the bucket exists. upload() checks for it at call time and returns a clear
+# 503 instead of crashing the whole process. Every other endpoint
+# (/osm/ways, /inputs/load, /models/run) works without storage at all.
+CLOUD_STORAGE_INPUT_FILES = os.environ.get("CLOUD_STORAGE_INPUT_FILES")
 
 
 logger = logging.get_logger(__name__)
 
-# If `entrypoint` is not defined in app.yaml, App Engine
-# will look for an app called `app` in `main.py`.
 app = Flask(__name__)
+
+
+@app.route("/", methods=["GET"])
+def health() -> dict:
+    """Health check — lets you verify the deploy is live in a browser."""
+    return {
+        "status": "ok",
+        "service": "acts-api",
+        "storage_configured": bool(CLOUD_STORAGE_INPUT_FILES),
+    }
+
+
+def _gcs_client() -> storage.Client:
+    """Build a Storage client from whichever credential source is set.
+
+    On GCP infra (GAE, GCE, Cloud Run) the metadata server provides
+    credentials automatically. Locally, GOOGLE_APPLICATION_CREDENTIALS
+    points at a key file. On hosts that can't easily hand you a file
+    (Render, etc), GOOGLE_APPLICATION_CREDENTIALS_JSON carries the same
+    service-account key as a raw JSON string in an env var instead.
+    """
+    raw_credentials = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+    if not raw_credentials:
+        return storage.Client()
+
+    info = json.loads(raw_credentials)
+    credentials = service_account.Credentials.from_service_account_info(info)
+    return storage.Client(credentials=credentials, project=info["project_id"])
 
 
 @app.route("/osm/ways", methods=["GET"])
@@ -59,9 +93,12 @@ def upload() -> str:
     if not uploaded_file:
         return "No file uploaded.", 400
 
+    if not CLOUD_STORAGE_INPUT_FILES:
+        return "Cloud storage is not configured on this server.", 503
+
     # Create a Cloud Storage client and
     # Get the bucket that the file will be uploaded to
-    gcs = storage.Client()
+    gcs = _gcs_client()
     bucket = gcs.get_bucket(CLOUD_STORAGE_INPUT_FILES)
 
     # Create a new blob and upload the file's content
@@ -96,6 +133,58 @@ def load() -> dict:
     }
 
 
+@app.route("/models/run", methods=["POST"])
+def run_models() -> dict:
+    """Run the four discrete-choice models against an uploaded survey file.
+
+    Replaces core/'s lambda.py (AWS Lambda + S3, run async per-file) with a
+    synchronous endpoint: given a fileurl (as returned by /inputs/upload),
+    fit all four models and return their summaries directly in the
+    response instead of writing parquet files to S3.
+    """
+    file_url = request.get_json(force=True).get("fileurl")
+    df = pd.read_csv(file_url)
+
+    model_fns = {
+        "travel": model.TravelDecisionMLogit,
+        "activity": model.ActivityChoiceMLogit,
+        "dest": model.DestinationChoiceMLogit,
+        "mode": model.ModeChoiceMLogit,
+    }
+
+    results = {}
+    for name, fit in model_fns.items():
+        mlogit, correlation = fit(df, output_correlation=True)
+        results[name] = _summarize(mlogit, correlation)
+
+    return {
+        "results": results,
+        "status": {
+            "code": 200,
+            "message": "OK",
+        },
+    }
+
+
+def _summarize(mlogit, correlation: pd.DataFrame | None) -> dict:
+    """Convert a fitted model's summary tables into JSON-serializable data."""
+    summary = mlogit.summary()
+    if summary is None:
+        return {"overview": [], "analysis": [], "correlation": []}
+
+    overview = pd.read_html(summary.tables[0].as_html(), header=0, index_col=0)[0]
+    analysis = pd.read_html(summary.tables[1].as_html(), header=0, index_col=0)[0]
+
+    return {
+        "overview": overview.reset_index().to_dict(orient="records"),
+        "analysis": analysis.reset_index().to_dict(orient="records"),
+        "correlation": (
+            correlation.reset_index().to_dict(orient="records")
+            if correlation is not None else []
+        ),
+    }
+
+
 @app.errorhandler(500)
 def server_error(e: Union[Exception, int]) -> str:
     logging.exception("An error occurred during a request.")
@@ -106,7 +195,7 @@ def server_error(e: Union[Exception, int]) -> str:
 
 
 if __name__ == "__main__":
-    # This is used when running locally only. When deploying to Google App
-    # Engine, a webserver process such as Gunicorn will serve the app. You
-    # can configure startup instructions by adding `entrypoint` to app.yaml.
+    # This is used when running locally only. In deployment, a WSGI server
+    # (gunicorn) serves the app instead — see the Render start command / GAE
+    # app.yaml entrypoint.
     app.run(host="127.0.0.1", port=8080, debug=True)
