@@ -19,6 +19,15 @@ services:
     # so Render doesn't mark the instance unhealthy mid-request.
     startCommand: gunicorn main:app --workers 1 --threads 8 --timeout 300
     healthCheckPath: /
+    # Only rebuild the API when its own code (or this blueprint) changes —
+    # pushes that only touch gui/, web/ or docs shouldn't redeploy it (each
+    # rebuild reinstalls the heavy scientific stack and briefly drops the
+    # service).
+    buildFilters:
+      paths:
+        - api/**
+        - core/**
+        - render.yaml
     envVars:
       # The old dependency pins (pandas 1.x, statsmodels 0.13.x) only build on
       # Python 3.10 — do not bump this without checking the model math.

@@ -21,7 +21,8 @@ function runModelOnModelButtonClick() {
     }
 
     ACTS.ui.statusSnackbar.labelText =
-        'Running models on the server... this can take up to a minute.';
+        'Running models on the server... this can take a couple of ' +
+        'minutes. The Outputs page will open when it is done.';
     ACTS.ui.statusSnackbar.open();
 
     try {
