@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Project ACTS — Activity-Based Travel-Demand Modeling</title>
+  <meta name="description" content="Project ACTS estimates a chain of
+    discrete-choice travel models and visualizes agents, desire lines, and
+    route heatmaps on a map. Free desktop app for urban-mobility analysis." />
+  <style>
+    :root {
+      --bg: #0b1020;
+      --bg-soft: #121a30;
+      --card: #16203a;
+      --border: #24304f;
+      --text: #e8edf7;
+      --muted: #9aa8c4;
+      --accent: #4f8cff;
+      --accent-2: #22d3a6;
+      --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    }
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f5f7fc;
+        --bg-soft: #ffffff;
+        --card: #ffffff;
+        --border: #e2e8f5;
+        --text: #10203a;
+        --muted: #55637e;
+        --accent: #2563eb;
+        --accent-2: #0ea882;
+        --shadow: 0 10px 40px rgba(20, 40, 80, 0.10);
+      }
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+    }
+    a { color: inherit; text-decoration: none; }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+
+    /* Header */
+    header {
+      position: sticky; top: 0; z-index: 10;
+      backdrop-filter: blur(10px);
+      background: color-mix(in srgb, var(--bg) 82%, transparent);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav {
+      display: flex; align-items: center; justify-content: space-between;
+      height: 64px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .brand .dot {
+      width: 12px; height: 12px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      box-shadow: 0 0 14px var(--accent);
+    }
+    .nav a.ghost { color: var(--muted); font-weight: 500; font-size: 15px; }
+    .nav a.ghost:hover { color: var(--text); }
+
+    /* Hero */
+    .hero { padding: 90px 0 60px; text-align: center; }
+    .badge {
+      display: inline-block; font-size: 13px; font-weight: 600;
+      color: var(--accent-2); border: 1px solid var(--border);
+      background: var(--bg-soft); padding: 6px 14px; border-radius: 999px;
+      margin-bottom: 24px; letter-spacing: 0.3px;
+    }
+    .hero h1 {
+      font-size: clamp(34px, 6vw, 60px); line-height: 1.08;
+      letter-spacing: -1.5px; font-weight: 800; margin-bottom: 20px;
+    }
+    .hero h1 .grad {
+      background: linear-gradient(120deg, var(--accent), var(--accent-2));
+      -webkit-background-clip: text; background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .hero p.lead {
+      font-size: clamp(17px, 2.4vw, 21px); color: var(--muted);
+      max-width: 680px; margin: 0 auto 36px;
+    }
+    .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px;
+      font-size: 16px; font-weight: 650; padding: 14px 26px;
+      border-radius: 12px; border: 1px solid transparent; cursor: pointer;
+      transition: transform 0.12s ease, box-shadow 0.12s ease;
+    }
+    .btn:hover { transform: translateY(-2px); }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--accent), var(--accent-2));
+      color: #fff; box-shadow: var(--shadow);
+    }
+    .btn-ghost {
+      background: var(--bg-soft); border-color: var(--border);
+      color: var(--text);
+    }
+    .subnote { margin-top: 16px; font-size: 13px; color: var(--muted); }
+
+    /* Map motif */
+    .motif {
+      margin: 56px auto 0; max-width: 900px; height: 320px;
+      border-radius: 18px; border: 1px solid var(--border);
+      background:
+        radial-gradient(circle at 20% 30%,
+          color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
+        radial-gradient(circle at 78% 70%,
+          color-mix(in srgb, var(--accent-2) 22%, transparent), transparent 45%),
+        var(--bg-soft);
+      position: relative; overflow: hidden; box-shadow: var(--shadow);
+    }
+    .motif svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+
+    /* Sections */
+    section.block { padding: 70px 0; }
+    .section-head { text-align: center; margin-bottom: 48px; }
+    .section-head h2 {
+      font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.8px;
+      margin-bottom: 12px;
+    }
+    .section-head p { color: var(--muted); max-width: 620px; margin: 0 auto; }
+
+    .grid {
+      display: grid; gap: 20px;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    }
+    .card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 16px; padding: 26px;
+    }
+    .card .ic {
+      width: 44px; height: 44px; border-radius: 11px; margin-bottom: 16px;
+      display: grid; place-items: center; font-size: 22px;
+      background: color-mix(in srgb, var(--accent) 14%, transparent);
+    }
+    .card h3 { font-size: 18px; margin-bottom: 8px; }
+    .card p { color: var(--muted); font-size: 15px; }
+
+    /* Pipeline */
+    .pipe {
+      display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 12px; margin-top: 8px;
+    }
+    .pipe .step {
+      background: var(--bg-soft); border: 1px solid var(--border);
+      border-radius: 12px; padding: 14px 20px; font-weight: 600;
+      font-size: 15px;
+    }
+    .pipe .arrow { color: var(--accent); font-size: 20px; font-weight: 700; }
+
+    /* Footer */
+    footer {
+      border-top: 1px solid var(--border); padding: 40px 0;
+      color: var(--muted); font-size: 14px;
+    }
+    .foot {
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+    }
+    .foot a:hover { color: var(--text); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <div class="brand"><span class="dot"></span> Project ACTS</div>
+      <nav style="display:flex; gap:22px; align-items:center;">
+        <a class="ghost" href="#features">Features</a>
+        <a class="ghost" href="#how">How it works</a>
+        <a class="ghost" href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="wrap">
+        <span class="badge">Urban mobility · Travel-demand modeling</span>
+        <h1>Model how a city <span class="grad">moves</span>.</h1>
+        <p class="lead">
+          Project ACTS turns a coded travel survey into a chain of
+          discrete-choice models — then animates agents, desire lines, and
+          route heatmaps on an interactive map. A free desktop tool for
+          transportation engineers and planners.
+        </p>
+        <div class="cta">
+          <a class="btn btn-primary"
+             href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+            ⬇ Download for Windows
+          </a>
+          <a class="btn btn-ghost"
+             href="https://github.com/Jacob-DelosAngeles/acts-project">
+            View source
+          </a>
+        </div>
+        <p class="subnote">Free and open source · Sample dataset: Quezon City,
+          Philippines</p>
+
+        <div class="motif" aria-hidden="true">
+          <svg viewBox="0 0 900 320" preserveAspectRatio="none">
+            <g stroke="var(--accent)" stroke-width="1.4" fill="none"
+               opacity="0.5">
+              <path d="M0 240 C 150 180, 300 260, 450 160 S 750 60, 900 120" />
+              <path d="M0 120 C 200 200, 350 90, 520 200 S 760 260, 900 210" />
+              <path d="M120 320 C 200 200, 260 160, 380 90" />
+              <path d="M900 40 C 700 120, 620 180, 480 210" />
+            </g>
+            <g fill="var(--accent-2)">
+              <circle cx="450" cy="160" r="5" />
+              <circle cx="520" cy="200" r="4" />
+              <circle cx="380" cy="90" r="4" />
+              <circle cx="700" cy="120" r="4" />
+              <circle cx="240" cy="210" r="4" />
+            </g>
+          </svg>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="features">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>Built for travel-demand analysis</h2>
+          <p>Everything the modeling workflow needs, in one desktop app.</p>
+        </div>
+        <div class="grid">
+          <div class="card">
+            <div class="ic">🧭</div>
+            <h3>Discrete-choice models</h3>
+            <p>Multinomial &amp; binary logit estimation with automatic
+              significance filtering and collinearity checks.</p>
+          </div>
+          <div class="card">
+            <div class="ic">🚶</div>
+            <h3>Agent animation</h3>
+            <p>Watch simulated travellers move across the road network in
+              real time, filtered by socio-demographic attributes.</p>
+          </div>
+          <div class="card">
+            <div class="ic">🕸️</div>
+            <h3>Desire lines &amp; OD flows</h3>
+            <p>Visualize origin–destination demand directly from your survey
+              and OD matrix.</p>
+          </div>
+          <div class="card">
+            <div class="ic">🔥</div>
+            <h3>Route heatmaps</h3>
+            <p>See where trips concentrate on the network with routed,
+              weighted heatmaps.</p>
+          </div>
+          <div class="card">
+            <div class="ic">📄</div>
+            <h3>CSV in, results out</h3>
+            <p>Upload survey, OD, and choice-set CSVs; export model results
+              and summaries to spreadsheets.</p>
+          </div>
+          <div class="card">
+            <div class="ic">💻</div>
+            <h3>Runs on your desktop</h3>
+            <p>The visualization runs locally — your data stays on your
+              machine. No account required.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="block" id="how" style="background: var(--bg-soft);">
+      <div class="wrap">
+        <div class="section-head">
+          <h2>The modeling pipeline</h2>
+          <p>ACTS estimates a behavioural chain of choices, one model feeding
+            the next.</p>
+        </div>
+        <div class="pipe">
+          <span class="step">Travel decision</span>
+          <span class="arrow">→</span>
+          <span class="step">Activity choice</span>
+          <span class="arrow">→</span>
+          <span class="step">Destination choice</span>
+          <span class="arrow">→</span>
+          <span class="step">Mode choice</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="block">
+      <div class="wrap" style="text-align:center;">
+        <div class="section-head" style="margin-bottom: 28px;">
+          <h2>Get started</h2>
+          <p>Download the desktop app and load the bundled Quezon City sample,
+            or bring your own coded survey.</p>
+        </div>
+        <div class="cta">
+          <a class="btn btn-primary"
+             href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+            ⬇ Download for Windows
+          </a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <div>Project ACTS · Activity-based travel-demand modeling</div>
+      <div style="display:flex; gap:20px;">
+        <a href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a>
+        <a href="https://github.com/Jacob-DelosAngeles/acts-project/releases">Releases</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
