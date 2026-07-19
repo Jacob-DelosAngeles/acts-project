@@ -12,6 +12,7 @@ from typing import Union
 
 from flask import Flask
 from flask import request
+from flask_cors import CORS
 from google.cloud import storage
 from google.oauth2 import service_account
 import pandas as pd
@@ -33,6 +34,11 @@ CLOUD_STORAGE_INPUT_FILES = os.environ.get("CLOUD_STORAGE_INPUT_FILES")
 logger = logging.get_logger(__name__)
 
 app = Flask(__name__)
+
+# The Electron desktop app calls this API from a file:// origin (cross-origin),
+# so responses need CORS headers or the browser blocks them. No cookies/auth
+# are involved, so allowing all origins is safe here.
+CORS(app)
 
 
 @app.route("/", methods=["GET"])
