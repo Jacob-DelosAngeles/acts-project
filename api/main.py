@@ -174,8 +174,20 @@ def run_models() -> dict:
 
     results = {}
     for name, fit in model_fns.items():
-        mlogit, correlation = fit(df, output_correlation=True)
-        results[name] = _summarize(mlogit, correlation)
+        # Fit each model independently: one model failing (e.g. a degenerate
+        # column in the survey) shouldn't sink the whole request — return its
+        # error alongside the models that did succeed.
+        try:
+            mlogit, correlation = fit(df, output_correlation=True)
+            results[name] = _summarize(mlogit, correlation)
+        except Exception as error:  # noqa: BLE001 - report, don't crash
+            logger.error("Model %s failed: %s", name, error)
+            results[name] = {
+                "error": str(error),
+                "overview": [],
+                "analysis": [],
+                "correlation": [],
+            }
 
     return {
         "results": results,
