@@ -113,14 +113,16 @@ function uploadInputFileOnSubmit2() {
     getData(odObjectUrl);
 
     // --- 3) Upload Survey file to backend (model run pipeline) ---
-    const apiURL = ACTS.apis.UPLOAD_INPUTS_ENDPOINT + encodeURIComponent(
-        ACTS.user + '/' + file.name,
-    );
+    // POST multipart/form-data to Flask's /inputs/upload (field name "file").
+    // Best-effort: the map animation above already works from local blobs, so
+    // a failure here (e.g. storage not yet configured) must not block the UI.
+    const formData = new FormData();
+    formData.append('file', file);
 
     console.log('Uploading input file to backend ...');
-    fetch(apiURL, {method: 'PUT', body: file})
+    fetch(ACTS.apis.UPLOAD_INPUTS_ENDPOINT, {method: 'POST', body: formData})
         .then((response) => {
-          console.success('Uploading input file ... done!');
+          console.log('Uploading input file ... done!');
           localStorage.removeItem(ACTS.store.LOCAL_FILE_KEY);
 
           // Optional: keep your "Uploaded" snackbar

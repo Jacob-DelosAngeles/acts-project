@@ -8,7 +8,6 @@ function download(urls, name) {
   const a = document.createElement('a');
   a.setAttribute('href', urls);
   a.setAttribute('download', '');
-  a.setAttribute('target', '_blank');
   a.click();
 
   if (a) {
@@ -17,15 +16,19 @@ function download(urls, name) {
   }
 }
 
+// Templates ship inside the app under src/renderer/template/. They are served
+// from the same file:// origin as this page, which is the only case where the
+// anchor `download` attribute actually saves the file — a cross-origin URL
+// (the old UPLB host) would just open the CSV instead of downloading it.
 $('#acts-upload-survey-button').on('click', function() {
-  download('https://actsproject.uplb.edu.ph/base_input.csv', 'Survey');
+  download('template/survey.csv', 'Survey');
 });
 
 
 $('#acts-upload-od-button').on('click', function() {
-  download('https://actsproject.uplb.edu.ph/od_mat.csv', 'OD');
+  download('template/od.csv', 'OD');
 });
 
 $('#acts-upload-dc-button').on('click', function() {
-  download('https://actsproject.uplb.edu.ph/choice_set.csv', 'Data Choice');
+  download('template/data%20choice.csv', 'Data Choice');
 });

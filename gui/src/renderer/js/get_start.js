@@ -11,11 +11,22 @@ $('#acts-login').submit(async function(e) {
   const email = $('#form-email').val();
   btnGetStarted.hide();
   btnLoading.show();
-  // const url = `https://qxt297xd1k.execute-api.ap-northeast-1.amazonaws.com/getStart?name=${name}&email=${email}`
-  const url = `https://actsproject.uplb.edu.ph/api/get-started?name=${name}&email=${email}`;
-  await fetchGetStart(url).then((res) => {
-    getStartModal.hide();
-  });
+
+  // Best-effort registration against the onboarding backend. It is not yet
+  // deployed (ACTS.apis.GET_STARTED_ENDPOINT is empty), and even once it is,
+  // a failure must never trap the user on the launch modal; always proceed.
+  const endpoint = ACTS.apis.GET_STARTED_ENDPOINT;
+  if (endpoint) {
+    const url = `${endpoint}?name=${encodeURIComponent(name)}` +
+        `&email=${encodeURIComponent(email)}`;
+    try {
+      await fetchGetStart(url);
+    } catch (err) {
+      console.error('get-started registration failed (continuing):', err);
+    }
+  }
+
+  getStartModal.hide();
 });
 
 /**
