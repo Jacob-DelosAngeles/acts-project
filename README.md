@@ -25,16 +25,20 @@ projects, consolidated to work together:
 | [`backend/`](backend/) | Laravel 11 | Lightweight onboarding/signup API, independent of the modeling stack |
 
 ```
-survey CSV ──> gui/ (local) ──> map, agents, desire lines, animation
+survey CSV ──> gui/ (local blobs) ──> map, agents, desire lines, animation
                   │
-                  └──> api/ /inputs/upload ──> Cloud Storage
-                                                     │
-                                        api/ /models/run (core/)
-                                                     │
-                                        overview / analysis / correlation
-                                                     │
-                                              gui/ (results view)
+                  └── POST the CSV ──> api/ /models/run ──> core/ fits the
+                                              │             four models
+                                              ▼
+                              overview / analysis / correlation
+                                              │
+                                              ▼
+                                    gui/ Outputs (spreadsheet)
 ```
+
+The desktop app needs **no cloud storage**: the visualization runs entirely
+on local blob URLs, and the survey CSV is posted straight to `/models/run`,
+which returns the fitted model summaries in the response.
 
 ## Getting started
 
@@ -77,19 +81,26 @@ docker compose up --build
 
 ## Project status
 
-Actively being brought back to a working, deployed state after sitting as
-disconnected components. Current state:
+Brought back from four disconnected components to a working, deployed
+system. Current state:
 
-- ✅ **`core/` and `api/` are tested and working locally** — packaging bugs
-  fixed, dependency pins corrected, real test coverage added.
-- ✅ **`gui/` runs clean and has been verified end-to-end** (upload → map
-  animation → export) via an automated smoke test.
-- 🚧 **Not yet deployed anywhere.** `api/` is being set up on Render;
-  file storage on Google Cloud Storage. `gui/`'s hardcoded endpoints
-  still point at retired 2022-era infrastructure and need updating once
-  the new API is live.
-- 🚧 **`backend/`** works standalone but isn't part of this deployment
-  pass yet.
+- ✅ **`core/` and `api/` tested** — packaging bugs fixed, dependency pins
+  corrected (Python 3.10, `numpy<2`, `scipy<1.11`), real test coverage.
+- ✅ **`api/` is deployed** on Render's free tier and serving requests.
+  A full four-model run against the Quezon City sample returns real
+  coefficients in ~2 minutes on free-tier hardware.
+- ✅ **No cloud storage, no billing account.** `/models/run` accepts the
+  CSV directly, so the whole pipeline runs on free infrastructure.
+- ✅ **`gui/` is wired to the live API** and off the retired 2022-era
+  AWS/S3/UPLB endpoints. Verified in a real Electron launch: boots clean
+  and renders model results.
+- ✅ **Installer builds** via `npm run make` (Squirrel/Windows). The
+  installer is unsigned, so Windows SmartScreen warns on first run.
+- 🚧 **Inputs/Outputs spreadsheet round-trip.** The Outputs page renders
+  `/models/run` results, but the legacy *Inputs* spreadsheet page still
+  expects the old storage-backed contract and is not rebuilt yet.
+- 🚧 **`backend/`** (Laravel onboarding) works standalone but isn't
+  deployed; the desktop app's get-started form is non-blocking without it.
 
 See [CLAUDE.md](CLAUDE.md) for the full architecture writeup, known
 gotchas, and conventions.
@@ -99,9 +110,11 @@ gotchas, and conventions.
 ```
 acts-project/
 ├─ core/        # Python modeling library (the engine)
-├─ api/         # Flask API
+├─ api/         # Flask API (deployed on Render)
 ├─ gui/         # Electron desktop UI
 ├─ backend/     # Laravel onboarding backend
+├─ web/         # landing / download page (static, for Vercel)
+├─ render.yaml  # Render blueprint for the API service
 ├─ archive/     # pristine original .zip deliverables (reference only)
 ├─ UI/          # UI reference screenshots
 └─ CLAUDE.md    # detailed architecture & conventions
