@@ -159,3 +159,8 @@ cython_debug/
 .vscode/*
 dev*.py
 env_acts_core/
+# PyInstaller output for the bundled desktop model engine (acts_engine.py).
+# ~350MB of build artifacts — rebuilt via the pyinstaller command in
+# CLAUDE.md / README, never committed.
+engine-dist/
+engine-build/

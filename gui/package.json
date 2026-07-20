@@ -21,7 +21,11 @@
   "license": "MIT",
   "config": {
     "forge": {
-      "packagerConfig": {},
+      "packagerConfig": {
+        "extraResource": [
+          "../core/engine-dist/acts-engine"
+        ]
+      },
       "makers": [
         {
           "name": "@electron-forge/maker-squirrel",

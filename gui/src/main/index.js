@@ -1,7 +1,9 @@
 /* ! index.js | Project ACTS | github.com/project-acts */
 
+const path = require('path');
 const {app, BrowserWindow} = require('electron');
 const {getAssetPath, getHtmlPath} = require('./utils');
+const engine = require('./engine');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -20,6 +22,11 @@ const createWindow = async () => {
     minWidth: 1224,
     minHeight: 768,
     icon: getAssetPath('icon.ico'),
+    webPreferences: {
+      // The renderer keeps its default sandbox (no Node access); preload.js
+      // is the only bridge, exposing just the local model engine.
+      preload: path.join(__dirname, 'preload.js'),
+    },
   });
 
   // Set new window properties
@@ -72,6 +79,8 @@ app.on('window-all-closed', () => {
 
 app.whenReady()
     .then(() => {
+      // Must be registered before any window can invoke them.
+      engine.register();
       createWindow();
 
       app.on('activate', () => {
