@@ -72,14 +72,20 @@ class MultinomialLogisticRegression(MNLogit):
 
 class MultinomialResultsWrapper(_MultinomialResultsWrapper):
     def get_significant_vars(self, threshold: float):
-        """Return all the variables that has less than 5% p-value."""
+        """Return all the variables that has less than 5% p-value.
+
+        Returned in the model's own variable order. This used to build a
+        set, which made results irreproducible: Python randomizes string
+        hashing per process, so the set's iteration order differed between
+        runs. That order becomes the column order of the refitted design
+        matrix, changing which columns the collinearity filter drops and
+        therefore which variables the final model keeps -- the same data
+        could yield a different model on every run.
+        """
         pvalues = self.pvalues.applymap(lambda x: True if x < threshold else False)
 
-        output = set()
-        for column in pvalues.columns:
-            output = output.union(set(pvalues[pvalues[column]].index))
-
-        return output
+        # Union over the columns is just "significant for any outcome".
+        return list(pvalues.index[pvalues.any(axis=1)])
 
 
 class LogisticRegression(Logit):
@@ -126,14 +132,15 @@ class LogisticRegression(Logit):
 
 class BinaryResultsWrapper(_BinaryResultsWrapper):
     def get_significant_vars(self, threshold: float):
-        """Return all the variables that has less than 5% p-value."""
+        """Return all the variables that has less than 5% p-value.
+
+        Ordered by the model's own variables -- see the note on
+        MultinomialResultsWrapper.get_significant_vars for why returning a
+        set here made model results irreproducible between runs.
+        """
         pvalues = pd.DataFrame(self.pvalues).applymap(lambda x: True if x < threshold else False)
 
-        output = set()
-        for column in pvalues.columns:
-            output = output.union(set(pvalues[pvalues[column]].index))
-
-        return output
+        return list(pvalues.index[pvalues.any(axis=1)])
 
 
 class NoneResult:

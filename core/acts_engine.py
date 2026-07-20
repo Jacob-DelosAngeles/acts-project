@@ -18,6 +18,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import multiprocessing
+import os
 import sys
 
 
@@ -33,6 +35,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Write JSON here instead of stdout.",
     )
     args = parser.parse_args(argv)
+
+    # Run the VIF filter in-process. joblib's default (n_jobs=-1) forks a
+    # worker per core, and in a PyInstaller-frozen build each fork re-executes
+    # this executable — so parallelism here risks a spawn storm for no real
+    # gain on a job this size. Respect an explicit override if one is set.
+    os.environ.setdefault("ACTS_VIF_N_JOBS", "1")
 
     # Imported here, not at module scope, so --help stays instant instead of
     # paying the multi-second pandas/statsmodels import cost.
@@ -61,4 +69,8 @@ def main(argv: list[str] | None = None) -> int:
 
 
 if __name__ == "__main__":
+    # Required before anything may spawn processes: in a frozen build a child
+    # process re-runs this executable, and without this guard it would re-run
+    # main() instead of behaving as a worker.
+    multiprocessing.freeze_support()
     sys.exit(main())
