@@ -7,3 +7,4 @@ pytest-asyncio
 pytest-cov
 pytest-mock
 tox
+pyinstaller>=6.0,<7.0

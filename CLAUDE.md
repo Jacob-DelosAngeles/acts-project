@@ -105,12 +105,27 @@ casing in CSVs doesn't matter.
 Run these **inside the relevant top-level component directory** (`core/`, `api/`,
 `gui/`, `backend/`).
 
-**acts-core** (Python 3.7–3.10; pins matter — `pandas<2.0`, `statsmodels<1.0`):
+**acts-core** (Python 3.10; pins matter — `pandas<2.0`, `statsmodels<1.0`,
+`numpy<2.0`, `scipy<1.11`):
 ```bash
 pip install -e .                 # editable install
 pytest                           # config in pyproject.toml (coverage on acts.core)
 black .                          # line-length 79
+
+# Run the models standalone (CSV in, JSON out). Writes to -o rather than
+# stdout because statsmodels prints its optimizer log to stdout.
+python acts_engine.py "base input.csv" -o results.json
+
+# Build the bundled desktop engine (~350MB, gitignored). gui's `npm run make`
+# packages whatever is in engine-dist/, so build this FIRST for a release.
+python -m PyInstaller --onedir --noconfirm --clean --name acts-engine \
+  --collect-all statsmodels --collect-data acts \
+  --distpath ./engine-dist --workpath ./engine-build --specpath ./engine-build \
+  acts_engine.py
 ```
+
+> `--onedir`, not `--onefile`: one-file re-extracts ~350MB to temp on every
+> run, which would erase the speed advantage over the hosted API.
 
 **acts-api** (Flask):
 ```bash
@@ -122,9 +137,15 @@ python main.py                   # serves http://127.0.0.1:8080
 ```bash
 npm install
 npm start                        # electron-forge start
-npm run make                     # build installers
+npm run make                     # build installers (bundles core/engine-dist/)
 npm run lint
 ```
+
+> **Run Model is local-first.** The renderer calls the bundled engine through
+> `src/main/preload.js` → `src/main/engine.js` (the renderer is sandboxed with
+> no Node access, so that bridge is the only route). If no engine is present
+> it falls back to the hosted API. Build the engine in `core/` before
+> `npm run make`, or the installer ships without local compute.
 
 **acts-get-started-backend** (Laravel 11, PHP 8.2+, Composer):
 ```bash
