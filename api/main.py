@@ -18,7 +18,7 @@ from google.oauth2 import service_account
 import pandas as pd
 
 import acts.core as acts
-import acts.model as model
+from acts import runner
 from acts.core import logging
 
 
@@ -165,55 +165,14 @@ def run_models() -> dict:
             }, 400
         df = pd.read_csv(file_url)
 
-    model_fns = {
-        "travel": model.TravelDecisionMLogit,
-        "activity": model.ActivityChoiceMLogit,
-        "dest": model.DestinationChoiceMLogit,
-        "mode": model.ModeChoiceMLogit,
-    }
-
-    results = {}
-    for name, fit in model_fns.items():
-        # Fit each model independently: one model failing (e.g. a degenerate
-        # column in the survey) shouldn't sink the whole request — return its
-        # error alongside the models that did succeed.
-        try:
-            mlogit, correlation = fit(df, output_correlation=True)
-            results[name] = _summarize(mlogit, correlation)
-        except Exception as error:  # noqa: BLE001 - report, don't crash
-            logger.error("Model %s failed: %s", name, error)
-            results[name] = {
-                "error": str(error),
-                "overview": [],
-                "analysis": [],
-                "correlation": [],
-            }
-
     return {
-        "results": results,
+        # Shared with the bundled desktop engine (core/acts_engine.py) so
+        # local and hosted runs return identical results.
+        "results": runner.run_all(df),
         "status": {
             "code": 200,
             "message": "OK",
         },
-    }
-
-
-def _summarize(mlogit, correlation: pd.DataFrame | None) -> dict:
-    """Convert a fitted model's summary tables into JSON-serializable data."""
-    summary = mlogit.summary()
-    if summary is None:
-        return {"overview": [], "analysis": [], "correlation": []}
-
-    overview = pd.read_html(summary.tables[0].as_html(), header=0, index_col=0)[0]
-    analysis = pd.read_html(summary.tables[1].as_html(), header=0, index_col=0)[0]
-
-    return {
-        "overview": overview.reset_index().to_dict(orient="records"),
-        "analysis": analysis.reset_index().to_dict(orient="records"),
-        "correlation": (
-            correlation.reset_index().to_dict(orient="records")
-            if correlation is not None else []
-        ),
     }
 
 

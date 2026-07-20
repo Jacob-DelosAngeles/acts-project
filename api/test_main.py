@@ -180,25 +180,32 @@ class TestGCSClient:
         )
 
 
+def _stub_models(mocker, only=None):
+    """Replace the runner's model functions with no-result stubs.
+
+    The runner holds direct references in MODEL_FUNCTIONS, so patching
+    acts.model attributes wouldn't take effect — patch the table itself.
+    Pass `only` to stub a subset and let the rest fit for real.
+    """
+    mock_result = mocker.MagicMock()
+    mock_result.summary.return_value = None
+
+    names = only if only is not None else list(main.runner.MODEL_FUNCTIONS)
+    stubs = {
+        name: mocker.MagicMock(return_value=(mock_result, None))
+        for name in names
+    }
+    mocker.patch.dict(main.runner.MODEL_FUNCTIONS, stubs, clear=False)
+
+
 class TestRunModels:
     client = main.app.test_client()
 
     def test__run_models__returns_all_four_model_names(self, mocker, tmp_path):
         csv_path = tmp_path / "survey.csv"
-        csv_path.write_text("a,b\n1,2\n")  # content unused, model fns mocked below
+        csv_path.write_text("a,b\n1,2\n")  # content unused, models stubbed
 
-        mock_result = mocker.MagicMock()
-        mock_result.summary.return_value = None
-
-        for fn_name in (
-            "TravelDecisionMLogit",
-            "ActivityChoiceMLogit",
-            "DestinationChoiceMLogit",
-            "ModeChoiceMLogit",
-        ):
-            mocker.patch(
-                f"main.model.{fn_name}", return_value=(mock_result, None)
-            )
+        _stub_models(mocker)
 
         response = self.client.post(
             "/models/run", json={"fileurl": str(csv_path)}
@@ -215,17 +222,7 @@ class TestRunModels:
     def test__run_models__accepts_multipart_upload(self, mocker):
         # The desktop app posts the CSV directly (no cloud storage) — verify
         # the multipart "file" path is taken and returns all four models.
-        mock_result = mocker.MagicMock()
-        mock_result.summary.return_value = None
-        for fn_name in (
-            "TravelDecisionMLogit",
-            "ActivityChoiceMLogit",
-            "DestinationChoiceMLogit",
-            "ModeChoiceMLogit",
-        ):
-            mocker.patch(
-                f"main.model.{fn_name}", return_value=(mock_result, None)
-            )
+        _stub_models(mocker)
 
         response = self.client.post(
             "/models/run",
@@ -245,20 +242,13 @@ class TestRunModels:
 
     def test__run_models__real_fit_serializes_summary_tables(self, mocker):
         # Only the activity-choice model runs for real here (against core/'s
-        # own bundled sample data) to prove _summarize() correctly turns a
-        # genuine statsmodels summary into JSON. "act" is binary in this
-        # dataset (0/1) so the fit is guaranteed rather than short-circuiting
-        # to NoneResult like "travel" does (it's constant in this sample).
-        # The other three are mocked to the None-result shape so this test
-        # isn't tied to their fits converging too — fast and focused.
-        mock_result = mocker.MagicMock()
-        mock_result.summary.return_value = None
-        for fn_name in (
-            "TravelDecisionMLogit", "DestinationChoiceMLogit", "ModeChoiceMLogit",
-        ):
-            mocker.patch(
-                f"main.model.{fn_name}", return_value=(mock_result, None)
-            )
+        # own bundled sample data) to prove runner.summarize() correctly
+        # turns a genuine statsmodels summary into JSON. "act" is binary in
+        # this dataset (0/1) so the fit is guaranteed rather than short-
+        # circuiting to NoneResult like "travel" does (it's constant here).
+        # The other three are stubbed so this test isn't tied to their fits
+        # converging too — fast and focused.
+        _stub_models(mocker, only=["travel", "dest", "mode"])
 
         response = self.client.post(
             "/models/run", json={"fileurl": CORE_BASE_INPUT_CSV}
