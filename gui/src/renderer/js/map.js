@@ -28,6 +28,9 @@ const travellerIcon = L.icon({
 const agentMarkers = new Map();
 let agents = [];
 let controls = [];
+// One routing failure per run is enough to tell the user; every agent routes
+// separately, so an outage would otherwise raise hundreds of identical alerts.
+let routingErrorReported = false;
 
 /** ACTS' own Map class. */
 ACTS.Map = class Map {
@@ -277,6 +280,7 @@ ACTS.Map = class Map {
               agents = [];
               agentMarkers.clear();
               controls = [];
+              routingErrorReported = false;
 
               for (let ctr = 0; ctr < odTable.data.length - 1; ctr++) {
                 const resultData = results.data[ctr];
@@ -311,6 +315,25 @@ ACTS.Map = class Map {
 };
 
 /**
+ * Reports a routing failure once per animation run. Agents are only created
+ * inside the 'routesfound' handler, so without this a failing routing
+ * service leaves the map silently empty with no indication why.
+ * @param {Object} e - The leaflet-routing-machine error event.
+ */
+function reportRoutingError(e) {
+  console.error('Routing failed:', (e && e.error) || e);
+  if (routingErrorReported) {
+    return;
+  }
+  routingErrorReported = true;
+
+  ACTS.ui.statusSnackbar.labelText = 'Could not fetch routes for the ' +
+      'agents, so none can be animated. Check your internet connection, ' +
+      'or set a Mapbox token for higher rate limits.';
+  ACTS.ui.statusSnackbar.open();
+}
+
+/**
  * Draws the route between an agent's origin and destination.
  * @param {Agent} agent - The agent to route.
  * @param {L.Map} map_ - The map to add the route to.
@@ -339,9 +362,17 @@ function generateRouting(agent, map_) {
     createMarker: function() {
       return null;
     },
-    router: L.Routing.mapbox(ACTS.apis.MAPBOX_TOKEN),
-    // router: L.Routing.graphHopper('163a1fb6-e3b1-4eb6-9f85-0eddebd5d38e')
+    // Mapbox needs an access token, which an open-source app can't ship (the
+    // old hard-coded one leaked and had to be revoked). Default to the public
+    // OSRM service so routing works with no credentials; set
+    // ACTS.apis.MAPBOX_TOKEN locally for higher, more reliable rate limits.
+    router: ACTS.apis.MAPBOX_TOKEN ?
+        L.Routing.mapbox(ACTS.apis.MAPBOX_TOKEN) :
+        L.Routing.osrmv1({
+          serviceUrl: 'https://router.project-osrm.org/route/v1',
+        }),
   })
+      .on('routingerror', reportRoutingError)
       .on('routesfound', function(e) {
         const coords = e.routes[0].coordinates;
         const points = [];
