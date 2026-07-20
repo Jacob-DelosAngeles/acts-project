@@ -23,68 +23,75 @@ document.addEventListener('DOMContentLoaded', () => {
   ACTS.ui.statusSnackbar = MDCSnackbar.attachTo(
       document.querySelector('#acts-status-snackbar'));
 
-  // Complete the API URL given the current users ID
+  // Render the survey CSV straight from the local copy the map page stored.
+  // There is no server round-trip: the file never leaves the machine.
   const filename = localStorage.getItem(ACTS.store.INPUT_FILE_KEY);
-  const apiURL = ACTS.apis.UPLOAD_INPUTS_ENDPOINT + encodeURIComponent(
-      ACTS.user + '/' + filename,
-  );
+  const surveyUrl = localStorage.getItem('SURVEY_FILE_URL');
 
-  const localData = localStorage.getItem(ACTS.store.LOCAL_FILE_KEY);
-
-  if (localData == null) {
-    console.log('Fetching input file data ...');
-    fetch(apiURL, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-    })
-        .then((response) => {
-          console.success('Fetching input file data ... done!');
-          return response.json();
-        })
-        .then((data) => {
-          localStorage.setItem(
-              ACTS.store.LOCAL_FILE_KEY, JSON.stringify(data),
-          );
-
-          ACTS.ui.loadingIndicator.close();
-          xspr = x_spreadsheet('#xspreadsheet')
-              .loadData(
-                  [
-                    {
-                      name: filename,
-                      rows: convertToSpreadsheetObject(data),
-                    },
-                  ],
-              ); // load data
-
-          ACTS.ui.saveButton.removeClass('hidden');
-        })
-        .catch((error) => {
-          console.error('Uploading input file ... failed!');
-          console.log('API Response:', error);
-
-          ACTS.ui.statusSnackbar.labelText = `Unable to show the uploaded ` +
-              `input file! Please verify the input data and re-upload`;
-          ACTS.ui.statusSnackbar.open();
-        });
-  } else {
+  if (!surveyUrl) {
     ACTS.ui.loadingIndicator.close();
-    xspr = x_spreadsheet('#xspreadsheet')
-        .loadData(
-            [
-              {
-                name: filename,
-                rows: convertToSpreadsheetObject(JSON.parse(localData)),
-              },
-            ],
-        ); // load data
-
-    ACTS.ui.saveButton.removeClass('hidden');
+    ACTS.ui.statusSnackbar.labelText =
+        'No input file loaded yet. Upload a Survey Input file first.';
+    ACTS.ui.statusSnackbar.open();
+    return;
   }
+
+  readCsvAsSheetRows(surveyUrl)
+      .then((rows) => {
+        ACTS.ui.loadingIndicator.close();
+        xspr = x_spreadsheet('#xspreadsheet').loadData([
+          {
+            name: filename || 'Survey Input',
+            rows: convertToSpreadsheetObject(rows),
+          },
+        ]);
+
+        ACTS.ui.saveButton.removeClass('hidden');
+      })
+      .catch((error) => {
+        // Always close the indicator — leaving it spinning was why this
+        // page appeared to hang forever when the fetch failed.
+        console.error('Could not read the input file:', error);
+        ACTS.ui.loadingIndicator.close();
+
+        ACTS.ui.statusSnackbar.labelText = 'Unable to show the uploaded ' +
+            'input file. Please re-upload it from the map page.';
+        ACTS.ui.statusSnackbar.open();
+      });
 });
+
+/**
+ * Parses a CSV into the row/cell shape convertToSpreadsheetObject expects.
+ * @param {string} fileURL - URL (blob:) of the CSV to read.
+ * @return {Promise<Object>} Rows keyed by index, each {cells: {col: value}}.
+ */
+function readCsvAsSheetRows(fileURL) {
+  return new Promise((resolve, reject) => {
+    Papa.parse(fileURL, {
+      download: true,
+      skipEmptyLines: true,
+      complete: function(results) {
+        try {
+          const rows = {};
+          results.data.forEach((cols, r) => {
+            const rowKey = String(r);
+            rows[rowKey] = {cells: {}};
+            cols.forEach((value, c) => {
+              rows[rowKey]['cells'][String(c)] = value;
+            });
+          });
+          resolve(rows);
+        } catch (err) {
+          reject(err);
+        }
+      },
+      // Without this the promise would never settle on a failed read.
+      error: function(err) {
+        reject(err);
+      },
+    });
+  });
+}
 
 
 // Called from onclick="exportXlsx()" in inputs.html; ESLint's single-file
