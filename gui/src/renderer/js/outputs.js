@@ -38,6 +38,14 @@ document.addEventListener('DOMContentLoaded', () => {
     ACTS.ui.loadingIndicator.close();
     xspr = x_spreadsheet('#xspreadsheet').loadData(sheets);
     ACTS.ui.saveButton.removeClass('hidden');
+  }).catch((err) => {
+    // Never leave the page sitting on the loading indicator with no
+    // explanation if the results can't be turned into sheets.
+    console.error('Could not render model results:', err);
+    ACTS.ui.loadingIndicator.close();
+    ACTS.ui.statusSnackbar.labelText =
+        'Could not display the model results. Please run the model again.';
+    ACTS.ui.statusSnackbar.open();
   });
 });
 
@@ -74,38 +82,54 @@ function countStats(key_, data) {
  * @return {Promise<Object>} Resolves with the summary spreadsheet data.
  */
 function readFile(fileURL) {
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const summary = {};
 
     Papa.parse(fileURL, {
       header: true,
       download: true,
       complete: function(results) {
-        const resultData = results.data;
-        resultData.pop();
-        // console.log(resultData);
+        // Guard the whole body: a throw inside a Papa callback would other-
+        // wise escape the promise and leave it forever pending.
+        try {
+          const resultData = results.data;
+          resultData.pop();
 
-        summary['0'] = {};
-        summary['0']['cells'] = {};
-
-        let row = 1;
-        const keys = Object.keys(resultData[0]);
-        for (const key of keys) {
-          summary[row.toString()] = {};
-          summary[row.toString()]['cells'] = {};
-          summary[row.toString()]['cells']['0'] = key;
-
-          const counts = countStats(key, resultData);
-          let column = 1;
-          for (let ctr=0; ctr<counts.length; ctr++) {
-            summary[row.toString()]['cells'][column.toString()] =
-                JSON.stringify(counts[ctr][ctr]);
-            summary['0']['cells'][column.toString()] = (column-1).toString();
-            column ++;
+          if (!resultData.length) {
+            resolve(summary);
+            return;
           }
-          row ++;
+
+          summary['0'] = {};
+          summary['0']['cells'] = {};
+
+          let row = 1;
+          const keys = Object.keys(resultData[0]);
+          for (const key of keys) {
+            summary[row.toString()] = {};
+            summary[row.toString()]['cells'] = {};
+            summary[row.toString()]['cells']['0'] = key;
+
+            const counts = countStats(key, resultData);
+            let column = 1;
+            for (let ctr=0; ctr<counts.length; ctr++) {
+              summary[row.toString()]['cells'][column.toString()] =
+                  JSON.stringify(counts[ctr][ctr]);
+              summary['0']['cells'][column.toString()] = (column-1).toString();
+              column ++;
+            }
+            row ++;
+          }
+          resolve(summary);
+        } catch (err) {
+          reject(err);
         }
-        resolve(summary);
+      },
+      // Required: without an error handler a failed fetch (e.g. a stale
+      // blob: URL left over from a previous session) never settles this
+      // promise, which would hang the Outputs page with nothing rendered.
+      error: function(err) {
+        reject(err);
       },
     });
   });
