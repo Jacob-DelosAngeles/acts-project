@@ -22,6 +22,7 @@
   "config": {
     "forge": {
       "packagerConfig": {
+        "icon": "assets/icon",
         "extraResource": [
           "../core/engine-dist/acts-engine"
         ]
@@ -30,7 +31,8 @@
         {
           "name": "@electron-forge/maker-squirrel",
           "config": {
-            "name": "acts_ui"
+            "name": "acts_ui",
+            "setupIcon": "assets/icon.ico"
           }
         },
         {
