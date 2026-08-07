@@ -3,283 +3,465 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Project ACTS — Activity-Based Travel-Demand Modeling</title>
+  <title>Project ACTS — Activity-Based Travel-Demand Modeling &amp; Decision Support</title>
   <link rel="icon" href="/favicon.ico" sizes="any" />
   <link rel="icon" type="image/png" href="/favicon-32.png" sizes="32x32" />
   <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-  <meta name="description" content="Project ACTS estimates a chain of
-    discrete-choice travel models and visualizes agents, desire lines, and
-    route heatmaps on a map. Free desktop app for urban-mobility analysis." />
+  <meta name="description" content="Project ACTS turns a coded travel survey
+    into a chain of discrete-choice models and visualizes agents, desire
+    lines, and route heatmaps on an interactive map. A free decision-support
+    tool for activity-based travel-demand modeling." />
+  <meta property="og:title" content="Project ACTS" />
+  <meta property="og:description" content="Activity-based travel-demand
+    modeling and decision support. Free desktop app." />
+  <meta property="og:type" content="website" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500;1,9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
   <style>
     :root {
-      --bg: #0b1020;
-      --bg-soft: #121a30;
-      --card: #16203a;
-      --border: #24304f;
-      --text: #e8edf7;
-      --muted: #9aa8c4;
-      --accent: #4f8cff;
-      --accent-2: #22d3a6;
-      --shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+      --navy: #0f2a4a;
+      --navy-800: #0c2240;
+      --navy-900: #0a1e38;
+      --gold: #f5c518;
+      --gold-deep: #d99e00;
+      --cream: #f7f4ef;
+      --cream-2: #efe9df;
+      --card: #ffffff;
+      --ink: #12233b;
+      --muted: #5c6b82;
+      --muted-light: #9fb0c9;
+      --line: #e6e0d6;
+      --line-dark: #1e3a5c;
+      --shadow: 0 18px 50px rgba(12, 34, 64, 0.12);
+      --shadow-sm: 0 6px 20px rgba(12, 34, 64, 0.08);
+      --serif: "Fraunces", Georgia, "Times New Roman", serif;
+      --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        Helvetica, Arial, sans-serif;
+      --maxw: 1140px;
     }
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #f5f7fc;
-        --bg-soft: #ffffff;
-        --card: #ffffff;
-        --border: #e2e8f5;
-        --text: #10203a;
-        --muted: #55637e;
-        --accent: #2563eb;
-        --accent-2: #0ea882;
-        --shadow: 0 10px 40px rgba(20, 40, 80, 0.10);
-      }
-    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
     html { scroll-behavior: smooth; }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-        Helvetica, Arial, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      line-height: 1.6;
+      font-family: var(--sans);
+      color: var(--ink);
+      background: var(--cream);
+      line-height: 1.65;
       -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
     }
     a { color: inherit; text-decoration: none; }
-    .wrap { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
+    img { max-width: 100%; display: block; }
+    .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 24px; }
 
-    /* Header */
-    header {
-      position: sticky; top: 0; z-index: 10;
-      backdrop-filter: blur(10px);
-      background: color-mix(in srgb, var(--bg) 82%, transparent);
-      border-bottom: 1px solid var(--border);
+    h1, h2, h3 { font-family: var(--serif); font-weight: 600; line-height: 1.1;
+      letter-spacing: -0.5px; color: var(--ink); }
+    .accent { font-style: italic; color: var(--gold-deep); }
+    .eyebrow {
+      font-family: var(--sans); text-transform: uppercase;
+      letter-spacing: 1.6px; font-size: 12.5px; font-weight: 700;
+      color: var(--gold-deep);
     }
-    .nav {
-      display: flex; align-items: center; justify-content: space-between;
-      height: 64px;
-    }
-    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
-    .brand .dot {
-      width: 12px; height: 12px; border-radius: 50%;
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      box-shadow: 0 0 14px var(--accent);
-    }
-    .nav a.ghost { color: var(--muted); font-weight: 500; font-size: 15px; }
-    .nav a.ghost:hover { color: var(--text); }
+    .on-dark .eyebrow { color: var(--gold); }
+    .on-dark, .on-dark h1, .on-dark h2, .on-dark h3 { color: var(--cream); }
+    .on-dark p { color: var(--muted-light); }
 
-    /* Hero */
-    .hero { padding: 90px 0 60px; text-align: center; }
-    .badge {
-      display: inline-block; font-size: 13px; font-weight: 600;
-      color: var(--accent-2); border: 1px solid var(--border);
-      background: var(--bg-soft); padding: 6px 14px; border-radius: 999px;
-      margin-bottom: 24px; letter-spacing: 0.3px;
-    }
-    .hero h1 {
-      font-size: clamp(34px, 6vw, 60px); line-height: 1.08;
-      letter-spacing: -1.5px; font-weight: 800; margin-bottom: 20px;
-    }
-    .hero h1 .grad {
-      background: linear-gradient(120deg, var(--accent), var(--accent-2));
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .hero p.lead {
-      font-size: clamp(17px, 2.4vw, 21px); color: var(--muted);
-      max-width: 680px; margin: 0 auto 36px;
-    }
-    .cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+    /* ---------- Buttons ---------- */
     .btn {
-      display: inline-flex; align-items: center; gap: 10px;
-      font-size: 16px; font-weight: 650; padding: 14px 26px;
-      border-radius: 12px; border: 1px solid transparent; cursor: pointer;
-      transition: transform 0.12s ease, box-shadow 0.12s ease;
+      display: inline-flex; align-items: center; gap: 9px;
+      font-family: var(--sans); font-weight: 600; font-size: 15.5px;
+      padding: 13px 24px; border-radius: 999px; cursor: pointer;
+      border: 1.5px solid transparent; transition: transform .14s ease,
+        box-shadow .14s ease, background .14s ease, color .14s ease;
+      white-space: nowrap;
     }
     .btn:hover { transform: translateY(-2px); }
-    .btn-primary {
-      background: linear-gradient(135deg, var(--accent), var(--accent-2));
-      color: #fff; box-shadow: var(--shadow);
-    }
-    .btn-ghost {
-      background: var(--bg-soft); border-color: var(--border);
-      color: var(--text);
-    }
-    .subnote { margin-top: 16px; font-size: 13px; color: var(--muted); }
+    .btn-primary { background: var(--gold); color: var(--navy-900);
+      box-shadow: 0 10px 26px rgba(245, 197, 24, .35); }
+    .btn-primary:hover { background: #ffd43b; }
+    .btn-navy { background: var(--navy); color: #fff; }
+    .btn-navy:hover { background: var(--navy-800); }
+    .btn-ghost { background: transparent; border-color: var(--line);
+      color: var(--ink); }
+    .btn-ghost:hover { border-color: var(--navy); }
+    .on-dark .btn-ghost { border-color: rgba(255,255,255,.28);
+      color: var(--cream); }
+    .on-dark .btn-ghost:hover { border-color: var(--gold); color: var(--gold); }
 
-    /* Map motif */
-    .motif {
-      margin: 56px auto 0; max-width: 900px; height: 320px;
-      border-radius: 18px; border: 1px solid var(--border);
+    /* ---------- Header ---------- */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(247, 244, 239, .86);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav { display: flex; align-items: center; justify-content: space-between;
+      height: 70px; }
+    .brand { display: flex; align-items: center; gap: 11px; }
+    .brand img { width: 34px; height: auto; }
+    .brand b { font-family: var(--serif); font-weight: 600; font-size: 20px;
+      letter-spacing: -0.3px; }
+    .brand span { color: var(--gold-deep); }
+    .nav-links { display: flex; gap: 30px; align-items: center; }
+    .nav-links a { font-size: 15px; font-weight: 500; color: var(--muted); }
+    .nav-links a:hover { color: var(--ink); }
+    .nav-cta { display: flex; align-items: center; gap: 14px; }
+
+    /* ---------- Sections ---------- */
+    section { padding: 92px 0; }
+    .sec-navy { background: var(--navy); }
+    .sec-navy-deep { background: var(--navy-900); }
+    .section-head { max-width: 660px; margin: 0 auto 56px; text-align: center; }
+    .section-head .eyebrow { display: inline-block; margin-bottom: 14px; }
+    .section-head h2 { font-size: clamp(30px, 4.4vw, 44px); margin-bottom: 14px; }
+    .section-head p { color: var(--muted); font-size: 17px; }
+    .on-dark.section-head p { color: var(--muted-light); }
+
+    /* ---------- Hero ---------- */
+    .hero { padding: 74px 0 84px; }
+    .hero-grid { display: grid; grid-template-columns: 1.05fr 0.95fr;
+      gap: 56px; align-items: center; }
+    .hero .eyebrow { display: block; margin-bottom: 22px; }
+    .hero h1 { font-size: clamp(40px, 6vw, 68px); font-weight: 600;
+      margin-bottom: 22px; }
+    .hero p.lead { font-size: 19px; color: var(--muted); max-width: 520px;
+      margin-bottom: 34px; }
+    .hero .cta { display: flex; gap: 14px; flex-wrap: wrap; }
+    .hero .subnote { margin-top: 18px; font-size: 13.5px; color: var(--muted); }
+
+    .hero-visual {
+      position: relative; border-radius: 26px; overflow: hidden;
       background:
-        radial-gradient(circle at 20% 30%,
-          color-mix(in srgb, var(--accent) 22%, transparent), transparent 45%),
-        radial-gradient(circle at 78% 70%,
-          color-mix(in srgb, var(--accent-2) 22%, transparent), transparent 45%),
-        var(--bg-soft);
-      position: relative; overflow: hidden; box-shadow: var(--shadow);
+        radial-gradient(120% 90% at 78% 18%,
+          rgba(245,197,24,.16), transparent 55%),
+        linear-gradient(160deg, #143458, var(--navy-900));
+      box-shadow: var(--shadow); aspect-ratio: 4 / 4.3;
+      display: grid; place-items: center;
     }
-    .motif svg { position: absolute; inset: 0; width: 100%; height: 100%; }
+    .hero-visual svg.roads { position: absolute; inset: 0; width: 100%;
+      height: 100%; opacity: .5; }
+    .hero-visual .mark { position: relative; width: 62%; z-index: 2;
+      filter: drop-shadow(0 12px 30px rgba(0,0,0,.35)); }
+    .hero-badge {
+      position: absolute; right: 20px; bottom: 20px; z-index: 3;
+      background: rgba(247,244,239,.96); border-radius: 16px;
+      padding: 14px 18px; box-shadow: var(--shadow-sm); text-align: left;
+    }
+    .hero-badge b { font-family: var(--serif); font-size: 24px; color: var(--navy);
+      display: block; line-height: 1; }
+    .hero-badge small { font-size: 12px; color: var(--muted); font-weight: 600;
+      text-transform: uppercase; letter-spacing: .6px; }
 
-    /* Sections */
-    section.block { padding: 70px 0; }
-    .section-head { text-align: center; margin-bottom: 48px; }
-    .section-head h2 {
-      font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.8px;
-      margin-bottom: 12px;
-    }
-    .section-head p { color: var(--muted); max-width: 620px; margin: 0 auto; }
-
-    .grid {
-      display: grid; gap: 20px;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-    }
-    .card {
-      background: var(--card); border: 1px solid var(--border);
-      border-radius: 16px; padding: 26px;
-    }
-    .card .ic {
-      width: 44px; height: 44px; border-radius: 11px; margin-bottom: 16px;
-      display: grid; place-items: center; font-size: 22px;
-      background: color-mix(in srgb, var(--accent) 14%, transparent);
-    }
-    .card h3 { font-size: 18px; margin-bottom: 8px; }
+    /* ---------- Feature cards ---------- */
+    .grid { display: grid; gap: 22px;
+      grid-template-columns: repeat(3, 1fr); }
+    .card { background: var(--card); border: 1px solid var(--line);
+      border-radius: 18px; padding: 30px 28px; transition: transform .16s ease,
+        box-shadow .16s ease; }
+    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow); }
+    .card .ic { width: 50px; height: 50px; border-radius: 13px;
+      display: grid; place-items: center; margin-bottom: 18px;
+      background: rgba(245,197,24,.16); font-size: 24px; }
+    .card h3 { font-size: 20px; margin-bottom: 9px; }
     .card p { color: var(--muted); font-size: 15px; }
 
-    /* Pipeline */
-    .pipe {
-      display: flex; align-items: center; justify-content: center;
-      flex-wrap: wrap; gap: 12px; margin-top: 8px;
+    /* ---------- Video ---------- */
+    .video-frame {
+      max-width: 940px; margin: 0 auto; border-radius: 18px; overflow: hidden;
+      border: 1px solid var(--line-dark);
+      box-shadow: 0 30px 70px rgba(0,0,0,.4);
+      background: #061426;
     }
-    .pipe .step {
-      background: var(--bg-soft); border: 1px solid var(--border);
-      border-radius: 12px; padding: 14px 20px; font-weight: 600;
-      font-size: 15px;
-    }
-    .pipe .arrow { color: var(--accent); font-size: 20px; font-weight: 700; }
+    .video-bar { display: flex; align-items: center; gap: 7px;
+      padding: 13px 18px; background: #0b2036;
+      border-bottom: 1px solid var(--line-dark); }
+    .video-bar i { width: 11px; height: 11px; border-radius: 50%;
+      background: #26456b; display: inline-block; }
+    .video-bar span { margin-left: 10px; font-size: 12.5px;
+      color: var(--muted-light); font-weight: 500; }
+    .video-frame video { width: 100%; display: block; background: #061426;
+      aspect-ratio: 16 / 9; }
+    .pipe { display: flex; align-items: center; justify-content: center;
+      flex-wrap: wrap; gap: 10px; margin-top: 44px; }
+    .pipe .step { background: rgba(255,255,255,.06);
+      border: 1px solid var(--line-dark); border-radius: 999px;
+      padding: 11px 20px; font-weight: 600; font-size: 14.5px;
+      color: var(--cream); }
+    .pipe .arrow { color: var(--gold); font-size: 18px; }
+    .video-note { text-align: center; margin-top: 26px; font-size: 14.5px;
+      color: var(--muted-light); }
 
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border); padding: 40px 0;
-      color: var(--muted); font-size: 14px;
+    /* ---------- Stats band ---------- */
+    .stats-band { margin: -46px auto 0; max-width: var(--maxw);
+      position: relative; z-index: 5; }
+    .stats { display: grid; grid-template-columns: repeat(4, 1fr);
+      background: linear-gradient(135deg, #fff, var(--cream-2));
+      border: 1px solid var(--line); border-radius: 20px;
+      box-shadow: var(--shadow); overflow: hidden; }
+    .stat { padding: 30px 24px; text-align: center;
+      border-right: 1px solid var(--line); }
+    .stat:last-child { border-right: none; }
+    .stat b { font-family: var(--serif); font-size: 40px; color: var(--navy);
+      display: block; line-height: 1; }
+    .stat b .u { color: var(--gold-deep); }
+    .stat small { display: block; margin-top: 8px; font-size: 13.5px;
+      color: var(--muted); font-weight: 600; text-transform: uppercase;
+      letter-spacing: .5px; }
+
+    /* ---------- Split (photo) sections ---------- */
+    .split { display: grid; grid-template-columns: 1fr 1fr; gap: 54px;
+      align-items: center; }
+    .split.rev .split-media { order: 2; }
+    .split-body .eyebrow { display: block; margin-bottom: 14px; }
+    .split-body h2 { font-size: clamp(28px, 3.6vw, 38px); margin-bottom: 18px; }
+    .split-body p { color: var(--muted); font-size: 16.5px; margin-bottom: 16px; }
+    .on-dark .split-body p { color: var(--muted-light); }
+    .photo-stack { position: relative; }
+    .photo-stack .p1 { border-radius: 18px; box-shadow: var(--shadow);
+      border: 4px solid #fff; }
+    .on-dark .photo-stack .p1 { border-color: rgba(255,255,255,.08); }
+    .photo-stack .p2 { position: absolute; width: 46%; right: -14px;
+      bottom: -28px; border-radius: 14px; border: 4px solid #fff;
+      box-shadow: var(--shadow); }
+    .on-dark .photo-stack .p2 { border-color: #0e2744; }
+    figcaption { margin-top: 44px; padding-right: 46%; font-size: 13px;
+      color: var(--muted); font-style: italic; }
+    .on-dark figcaption { color: var(--muted-light); }
+    .chips { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+    .chip { border: 1px solid var(--line); border-radius: 999px;
+      padding: 8px 16px; font-size: 14px; font-weight: 600; color: var(--ink); }
+    .on-dark .chip { border-color: var(--line-dark); color: var(--cream);
+      background: rgba(255,255,255,.05); }
+
+    /* ---------- Partners ---------- */
+    .partners { display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: 22px; margin-bottom: 46px; }
+    .partner { background: var(--card); border: 1px solid var(--line);
+      border-radius: 18px; padding: 30px; text-align: center; }
+    .partner .role { font-size: 12px; font-weight: 700; letter-spacing: 1px;
+      text-transform: uppercase; color: var(--gold-deep); margin-bottom: 12px; }
+    .partner h3 { font-size: 19px; margin-bottom: 8px; }
+    .partner p { color: var(--muted); font-size: 14.5px; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+      max-width: 900px; margin: 0 auto; }
+    .col h3 { font-size: 20px; margin-bottom: 16px; }
+    .clean-list { list-style: none; }
+    .clean-list li { position: relative; padding-left: 26px; margin-bottom: 12px;
+      color: var(--muted); font-size: 15.5px; }
+    .clean-list li::before { content: "→"; position: absolute; left: 0;
+      color: var(--gold-deep); font-weight: 700; }
+
+    /* ---------- CTA band ---------- */
+    .cta-band { text-align: center;
+      background:
+        radial-gradient(120% 140% at 50% -20%, rgba(245,197,24,.18),
+          transparent 60%),
+        linear-gradient(160deg, var(--navy), var(--navy-900)); }
+    .cta-band h2 { font-size: clamp(30px, 4.6vw, 46px); margin-bottom: 16px;
+      color: var(--cream); }
+    .cta-band p { color: var(--muted-light); font-size: 17px;
+      margin-bottom: 32px; }
+    .cta-band .cta { display: flex; justify-content: center; gap: 14px;
+      flex-wrap: wrap; }
+    .cta-band .subnote { margin-top: 18px; font-size: 13.5px;
+      color: var(--muted-light); }
+
+    /* ---------- Footer ---------- */
+    footer { background: var(--navy-900); color: var(--muted-light);
+      padding: 66px 0 30px; }
+    .foot-grid { display: grid; grid-template-columns: 1.6fr 1fr 1fr 1fr;
+      gap: 40px; padding-bottom: 44px;
+      border-bottom: 1px solid var(--line-dark); }
+    .foot-brand { display: flex; align-items: center; gap: 11px;
+      margin-bottom: 16px; }
+    .foot-brand img { width: 34px; }
+    .foot-brand b { font-family: var(--serif); font-size: 19px;
+      color: var(--cream); }
+    .foot-brand span { color: var(--gold); }
+    .foot-col p { font-size: 14.5px; max-width: 280px; }
+    .foot-col h4 { color: var(--cream); font-size: 13px; text-transform: uppercase;
+      letter-spacing: 1px; margin-bottom: 16px; font-weight: 700; }
+    .foot-col ul { list-style: none; }
+    .foot-col li { margin-bottom: 10px; }
+    .foot-col a { font-size: 14.5px; }
+    .foot-col a:hover { color: var(--gold); }
+    .foot-bottom { display: flex; justify-content: space-between;
+      align-items: center; flex-wrap: wrap; gap: 12px; padding-top: 24px;
+      font-size: 13.5px; }
+    .foot-bottom a:hover { color: var(--gold); }
+
+    /* ---------- Responsive ---------- */
+    @media (max-width: 900px) {
+      section { padding: 68px 0; }
+      .hero-grid, .split, .two-col { grid-template-columns: 1fr; }
+      .hero-grid { gap: 40px; }
+      .hero-visual { aspect-ratio: 4 / 3.4; max-width: 480px; }
+      .split.rev .split-media { order: 0; }
+      .split { gap: 40px; }
+      .grid { grid-template-columns: repeat(2, 1fr); }
+      .partners { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: repeat(2, 1fr); }
+      .stat:nth-child(2) { border-right: none; }
+      .stat:nth-child(1), .stat:nth-child(2) { border-bottom: 1px solid var(--line); }
+      .nav-links { display: none; }
+      .photo-stack .p2 { position: static; width: 100%; margin-top: 16px; }
+      figcaption { margin-top: 16px; padding-right: 0; }
     }
-    .foot {
-      display: flex; justify-content: space-between; align-items: center;
-      flex-wrap: wrap; gap: 12px;
+    @media (max-width: 540px) {
+      .grid { grid-template-columns: 1fr; }
+      .stats { grid-template-columns: 1fr; }
+      .stat { border-right: none; border-bottom: 1px solid var(--line); }
+      .stat:last-child { border-bottom: none; }
+      .foot-grid { grid-template-columns: 1fr 1fr; }
+      .hero .cta .btn, .cta-band .cta .btn { flex: 1 1 auto; justify-content: center; }
     }
-    .foot a:hover { color: var(--text); }
   </style>
 </head>
 <body>
+  <!-- ===================== Header ===================== -->
   <header>
     <div class="wrap nav">
-      <div class="brand"><span class="dot"></span> Project ACTS</div>
-      <nav style="display:flex; gap:22px; align-items:center;">
-        <a class="ghost" href="#features">Features</a>
-        <a class="ghost" href="#how">How it works</a>
-        <a class="ghost" href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a>
+      <a class="brand" href="#top">
+        <img src="img/acts-amark.png" alt="Project ACTS logo" />
+        <b>Project <span>ACTS</span></b>
+      </a>
+      <nav class="nav-links">
+        <a href="#features">Overview</a>
+        <a href="#software">Software</a>
+        <a href="#data">Data &amp; Training</a>
+        <a href="#project">Project</a>
       </nav>
+      <div class="nav-cta">
+        <a class="btn btn-navy"
+           href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+          Download
+        </a>
+      </div>
     </div>
   </header>
 
-  <main>
+  <main id="top">
+    <!-- ===================== Hero ===================== -->
     <section class="hero">
-      <div class="wrap">
-        <span class="badge">Urban mobility · Travel-demand modeling</span>
-        <h1>Model how a city <span class="grad">moves</span>.</h1>
-        <p class="lead">
-          Project ACTS turns a coded travel survey into a chain of
-          discrete-choice models — then animates agents, desire lines, and
-          route heatmaps on an interactive map. A free desktop tool for
-          transportation engineers and planners.
-        </p>
-        <div class="cta">
-          <a class="btn btn-primary"
-             href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
-            ⬇ Download for Windows
-          </a>
-          <a class="btn btn-ghost"
-             href="https://github.com/Jacob-DelosAngeles/acts-project">
-            View source
-          </a>
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow">DOST-PCIEERD · UPLB-DCE · Quezon City</span>
+          <h1>Model how a city <span class="accent">moves</span>.</h1>
+          <p class="lead">
+            Project ACTS turns a coded travel survey into a chain of
+            discrete-choice models — then simulates agents, desire lines, and
+            route heatmaps on an interactive map. A decision-support system for
+            activity-based travel-demand modeling.
+          </p>
+          <div class="cta">
+            <a class="btn btn-primary"
+               href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+              ⬇ Download for Windows
+            </a>
+            <a class="btn btn-ghost" href="#software">▶ Watch the demo</a>
+          </div>
+          <p class="subnote">Free &amp; open source · Bundled sample dataset:
+            Quezon City, Philippines</p>
         </div>
-        <p class="subnote">Free and open source · Sample dataset: Quezon City,
-          Philippines</p>
 
-        <div class="motif" aria-hidden="true">
-          <svg viewBox="0 0 900 320" preserveAspectRatio="none">
-            <g stroke="var(--accent)" stroke-width="1.4" fill="none"
-               opacity="0.5">
-              <path d="M0 240 C 150 180, 300 260, 450 160 S 750 60, 900 120" />
-              <path d="M0 120 C 200 200, 350 90, 520 200 S 760 260, 900 210" />
-              <path d="M120 320 C 200 200, 260 160, 380 90" />
-              <path d="M900 40 C 700 120, 620 180, 480 210" />
+        <div class="hero-visual" aria-hidden="true">
+          <svg class="roads" viewBox="0 0 400 430" preserveAspectRatio="none">
+            <g fill="none" stroke="#7fa7d6" stroke-width="1.1" opacity=".6">
+              <path d="M-10 300 C 90 250, 150 320, 230 230 S 380 130, 420 180" />
+              <path d="M-10 140 C 110 210, 180 110, 260 200 S 360 280, 420 230" />
+              <path d="M60 440 C 110 300, 150 250, 210 150" />
+              <path d="M410 60 C 300 150, 250 210, 170 250" />
             </g>
-            <g fill="var(--accent-2)">
-              <circle cx="450" cy="160" r="5" />
-              <circle cx="520" cy="200" r="4" />
-              <circle cx="380" cy="90" r="4" />
-              <circle cx="700" cy="120" r="4" />
-              <circle cx="240" cy="210" r="4" />
+            <g fill="#f5c518">
+              <circle cx="230" cy="230" r="4.5" />
+              <circle cx="260" cy="200" r="3.5" />
+              <circle cx="210" cy="150" r="3.5" />
+              <circle cx="170" cy="250" r="3.5" />
             </g>
           </svg>
+          <img class="mark" src="img/acts-amark-cream.png"
+               alt="Project ACTS A-mark" />
+          <div class="hero-badge">
+            <b>958</b>
+            <small>Respondents · Batasan Hills</small>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="block" id="features">
+    <!-- ===================== Features ===================== -->
+    <section id="features">
       <div class="wrap">
         <div class="section-head">
+          <span class="eyebrow">What ACTS does</span>
           <h2>Built for travel-demand analysis</h2>
-          <p>Everything the modeling workflow needs, in one desktop app.</p>
+          <p>A microscopic, activity-based simulation of urban travel behavior —
+            everything the modeling workflow needs in one desktop app.</p>
         </div>
         <div class="grid">
           <div class="card">
             <div class="ic">🧭</div>
-            <h3>Discrete-choice models</h3>
-            <p>Multinomial &amp; binary logit estimation with automatic
-              significance filtering and collinearity checks.</p>
+            <h3>Frequent destinations</h3>
+            <p>Reveals the places and destinations agents travel to most across
+              the network.</p>
+          </div>
+          <div class="card">
+            <div class="ic">🚌</div>
+            <h3>Mode choice</h3>
+            <p>Identifies which modes of transport people choose under different
+              scenarios and constraints.</p>
+          </div>
+          <div class="card">
+            <div class="ic">📊</div>
+            <h3>Significant factors</h3>
+            <p>Surfaces the socio-economic and travel factors that most affect
+              individual behavior.</p>
           </div>
           <div class="card">
             <div class="ic">🚶</div>
-            <h3>Agent animation</h3>
-            <p>Watch simulated travellers move across the road network in
-              real time, filtered by socio-demographic attributes.</p>
-          </div>
-          <div class="card">
-            <div class="ic">🕸️</div>
-            <h3>Desire lines &amp; OD flows</h3>
-            <p>Visualize origin–destination demand directly from your survey
-              and OD matrix.</p>
+            <h3>Activity-travel &amp; OD</h3>
+            <p>Simulates each individual's activity-travel and produces their
+              origin–destination matrix.</p>
           </div>
           <div class="card">
             <div class="ic">🔥</div>
             <h3>Route heatmaps</h3>
-            <p>See where trips concentrate on the network with routed,
-              weighted heatmaps.</p>
+            <p>Shows where trips concentrate on the road network with routed,
+              weighted heat.</p>
           </div>
           <div class="card">
-            <div class="ic">📄</div>
-            <h3>CSV in, results out</h3>
-            <p>Upload survey, OD, and choice-set CSVs; export model results
-              and summaries to spreadsheets.</p>
-          </div>
-          <div class="card">
-            <div class="ic">💻</div>
-            <h3>Runs on your desktop</h3>
-            <p>The visualization runs locally — your data stays on your
-              machine. No account required.</p>
+            <div class="ic">🕸️</div>
+            <h3>Desire lines</h3>
+            <p>Draws origin–destination demand straight from your survey and OD
+              matrix.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <section class="block" id="how" style="background: var(--bg-soft);">
+    <!-- ===================== Software / Video ===================== -->
+    <section id="software" class="sec-navy on-dark">
       <div class="wrap">
-        <div class="section-head">
-          <h2>The modeling pipeline</h2>
-          <p>ACTS estimates a behavioural chain of choices, one model feeding
-            the next.</p>
+        <div class="section-head on-dark">
+          <span class="eyebrow">See ACTS in action</span>
+          <h2>From survey to simulation</h2>
+          <p>Upload your coded survey, OD matrix, and choice sets — then watch
+            the models run and the city come to life on the map.</p>
+        </div>
+        <div class="video-frame">
+          <div class="video-bar">
+            <i></i><i></i><i></i>
+            <span>Project ACTS — Software demo</span>
+          </div>
+          <video controls preload="metadata" playsinline
+                 poster="img/demo-poster.jpg">
+            <source src="video/acts-demo.mp4" type="video/mp4" />
+            Your browser does not support the video tag. Download the app to see
+            it in action.
+          </video>
         </div>
         <div class="pipe">
           <span class="step">Travel decision</span>
@@ -290,32 +472,216 @@
           <span class="arrow">→</span>
           <span class="step">Mode choice</span>
         </div>
+        <p class="video-note">Models fit locally on your CPU in about
+          20&nbsp;seconds — no account, and your survey data never leaves your
+          machine.</p>
       </div>
     </section>
 
-    <section class="block">
-      <div class="wrap" style="text-align:center;">
-        <div class="section-head" style="margin-bottom: 28px;">
-          <h2>Get started</h2>
-          <p>Download the desktop app and load the bundled Quezon City sample,
-            or bring your own coded survey.</p>
+    <!-- ===================== Stats band ===================== -->
+    <div class="stats-band wrap">
+      <div class="stats">
+        <div class="stat">
+          <b>958</b><small>Respondents surveyed</small>
         </div>
+        <div class="stat">
+          <b>9</b><small>Clusters covered</small>
+        </div>
+        <div class="stat">
+          <b>4</b><small>Discrete-choice models</small>
+        </div>
+        <div class="stat">
+          <b>2022</b><small>Mar–Apr fieldwork</small>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===================== Data Collection ===================== -->
+    <section id="data">
+      <div class="wrap split">
+        <figure class="split-media photo-stack">
+          <img class="p1" src="img/data-collection-1.jpg"
+               alt="ACTS enumerators briefing respondents in Batasan Hills" />
+          <img class="p2" src="img/data-collection-2.jpg"
+               alt="Coordination with barangay officials" />
+          <figcaption>Face-to-face survey &amp; barangay coordination —
+            Batasan Hills, Quezon City, 2022.</figcaption>
+        </figure>
+        <div class="split-body">
+          <span class="eyebrow">Data collection</span>
+          <h2>Grounded in real fieldwork</h2>
+          <p>From March 21 to April 10, 2022, the ACTS team ran a face-to-face
+            survey across all nine clusters of Barangay Batasan Hills, Quezon
+            City. Eight local enumerators were hired and trained to interview
+            household heads whose activities take them outside the home — to
+            work, to market, for leisure — traveling by tricycle, jeepney,
+            private car, and more.</p>
+          <p>A 3% per-cluster sample (oversampled to 10% in Cluster 4, where
+            CCTV footage was available for validation) set a target of 884
+            respondents. By June 30 the team had surveyed <strong>958</strong> —
+            over 100% of target.</p>
+          <div class="chips">
+            <span class="chip">9 clusters</span>
+            <span class="chip">8 enumerators</span>
+            <span class="chip">Household heads</span>
+            <span class="chip">Multi-modal trips</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== Training ===================== -->
+    <section class="sec-navy on-dark">
+      <div class="wrap split rev">
+        <figure class="split-media photo-stack">
+          <img class="p1" src="img/training-2.jpg"
+               alt="ACTS Software Training participants with certificates" />
+          <img class="p2" src="img/training-1.jpg"
+               alt="ACTS Software Training session in progress" />
+          <figcaption>ACTS Software Training for local-government users —
+            Batasan Hills, Quezon City.</figcaption>
+        </figure>
+        <div class="split-body">
+          <span class="eyebrow">Training &amp; handover</span>
+          <h2>Built to be handed over</h2>
+          <p>Beyond building the model, ACTS was made to be used by the people
+            who plan cities. The project developed training modules and ran the
+            ACTS Software Training for local-government units in Batasan Hills.</p>
+          <p>Participants were walked through uploading survey data, running the
+            four models, and reading the outputs — descriptive statistics,
+            correlation matrices, parameter estimates, and simulation maps —
+            and awarded certificates on completion.</p>
+          <div class="chips">
+            <span class="chip">Training modules</span>
+            <span class="chip">Hands-on sessions</span>
+            <span class="chip">LGU capacity-building</span>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== Project / Partners ===================== -->
+    <section id="project">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="eyebrow">The project</span>
+          <h2>A decision-support system for <span class="accent">last-mile</span>
+            mobility</h2>
+          <p>Modeling activity-travel behavior to help local governments plan
+            for movement, economic activity, and resilience.</p>
+        </div>
+
+        <div class="partners">
+          <div class="partner">
+            <div class="role">Funding agency</div>
+            <h3>DOST-PCIEERD</h3>
+            <p>Philippine Council for Industry, Energy, and Emerging Technology
+              Research and Development — fully funds Project ACTS.</p>
+          </div>
+          <div class="partner">
+            <div class="role">Implementing agency</div>
+            <h3>UPLB-DCE</h3>
+            <p>University of the Philippines Los Baños — Department of Civil
+              Engineering leads the research and development.</p>
+          </div>
+          <div class="partner">
+            <div class="role">Cooperating agency</div>
+            <h3>Brgy. Batasan Hills</h3>
+            <p>Quezon City — the cooperating barangay where the survey and
+              software training were carried out.</p>
+          </div>
+        </div>
+
+        <div class="two-col">
+          <div class="col">
+            <h3>Objectives</h3>
+            <ul class="clean-list">
+              <li>Support decisions on the movement of people and the impact of
+                management strategies.</li>
+              <li>Integrate existing databases into the LGU system.</li>
+              <li>Develop training modules and train LGU users.</li>
+              <li>Disseminate outputs through journal publications.</li>
+            </ul>
+          </div>
+          <div class="col">
+            <h3>Potential impact</h3>
+            <ul class="clean-list">
+              <li>Identify specific transport and economic activities.</li>
+              <li>Locate commerce hubs and areas of concern.</li>
+              <li>Forecast and visualize proposed management schemes.</li>
+              <li>Link authorities and communities in solving mobility
+                problems.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== CTA band ===================== -->
+    <section class="cta-band on-dark">
+      <div class="wrap">
+        <h2>Download Project ACTS.</h2>
+        <p>Free. Runs on Windows. Ships with the Quezon City sample dataset.</p>
         <div class="cta">
           <a class="btn btn-primary"
              href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
             ⬇ Download for Windows
           </a>
+          <a class="btn btn-ghost"
+             href="https://github.com/Jacob-DelosAngeles/acts-project">
+            View source
+          </a>
         </div>
+        <p class="subnote">The installer is unsigned — Windows SmartScreen may
+          warn on first run (More info → Run anyway).</p>
       </div>
     </section>
   </main>
 
+  <!-- ===================== Footer ===================== -->
   <footer>
-    <div class="wrap foot">
-      <div>Project ACTS · Activity-based travel-demand modeling</div>
-      <div style="display:flex; gap:20px;">
-        <a href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a>
-        <a href="https://github.com/Jacob-DelosAngeles/acts-project/releases">Releases</a>
+    <div class="wrap">
+      <div class="foot-grid">
+        <div class="foot-col">
+          <div class="foot-brand">
+            <img src="img/acts-amark-cream.png" alt="Project ACTS logo" />
+            <b>Project <span>ACTS</span></b>
+          </div>
+          <p>Activity-based travel-demand modeling and decision support for
+            urban mobility. Fully funded by DOST-PCIEERD.</p>
+        </div>
+        <div class="foot-col">
+          <h4>Explore</h4>
+          <ul>
+            <li><a href="#features">Overview</a></li>
+            <li><a href="#software">Software</a></li>
+            <li><a href="#data">Data &amp; Training</a></li>
+            <li><a href="#project">The Project</a></li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <h4>Partners</h4>
+          <ul>
+            <li>DOST-PCIEERD</li>
+            <li>UPLB-DCE</li>
+            <li>Brgy. Batasan Hills</li>
+          </ul>
+        </div>
+        <div class="foot-col">
+          <h4>Get it</h4>
+          <ul>
+            <li><a href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">Download</a></li>
+            <li><a href="https://github.com/Jacob-DelosAngeles/acts-project/releases">Releases</a></li>
+            <li><a href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a></li>
+          </ul>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <div>© 2026 Project ACTS · Fully funded by DOST-PCIEERD · UPLB-DCE</div>
+        <div style="display:flex; gap:20px;">
+          <a href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a>
+          <a href="https://github.com/Jacob-DelosAngeles/acts-project/releases">Releases</a>
+        </div>
       </div>
     </div>
   </footer>
