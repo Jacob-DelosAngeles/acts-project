@@ -43,7 +43,7 @@ def get_version() -> str:
 setuptools.setup(
     name="acts",
     description=DOCLINES[0],
-    author="Arbyn Argabioso",
+    author="Project ACTS",
     version=get_version(),
     install_requires=get_requirements(),
     include_package_data=True,
