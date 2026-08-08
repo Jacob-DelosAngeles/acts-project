@@ -14,10 +14,7 @@
     "lint": "cross-env NODE_ENV=development eslint . --ext .js,.jsx,.ts,.tsx"
   },
   "keywords": [],
-  "author": {
-    "name": "Arbyn Acosta Argabioso",
-    "email": "arbyn.acosta@gmail.com"
-  },
+  "author": "Project ACTS",
   "license": "MIT",
   "config": {
     "forge": {
@@ -32,7 +29,9 @@
           "name": "@electron-forge/maker-squirrel",
           "config": {
             "name": "acts_ui",
-            "setupIcon": "assets/icon.ico"
+            "setupIcon": "assets/icon.ico",
+            "authors": "Project ACTS",
+            "owners": "Project ACTS"
           }
         },
         {
