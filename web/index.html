@@ -350,8 +350,15 @@
         <a href="#project">Project</a>
       </nav>
       <div class="nav-cta">
+        <!-- Download links point straight at the installer rather than the
+             releases page, so a visitor gets a file instead of a listing of
+             the .exe plus GitHub's two auto-generated source archives.
+             The filename carries the version, so every "Download" href here
+             must be bumped on each release (or the asset given a stable,
+             version-free name). Links labelled "Releases" stay on the
+             listing page deliberately. -->
         <a class="btn btn-navy"
-           href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+           href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest/download/Project.ACTS-1.0.1.Setup.exe">
           Download
         </a>
       </div>
@@ -373,13 +380,15 @@
           </p>
           <div class="cta">
             <a class="btn btn-primary"
-               href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+               href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest/download/Project.ACTS-1.0.1.Setup.exe">
               ⬇ Download for Windows
             </a>
             <a class="btn btn-ghost" href="#software">▶ Watch the demo</a>
           </div>
           <p class="subnote">Free &amp; open source · Bundled sample dataset:
-            Quezon City, Philippines</p>
+            Quezon City, Philippines<br>
+            Unsigned installer — Windows may warn on first run
+            (More info → Run anyway).</p>
         </div>
 
         <div class="hero-visual" aria-hidden="true">
@@ -489,6 +498,7 @@
         <p class="video-note">Models fit locally on your CPU in about
           20&nbsp;seconds — no account, and your survey data never leaves your
           machine.<br>
+          Demo starts muted ·
           <a class="video-alt" href="https://youtu.be/e2GjTG48Z4c"
              target="_blank" rel="noopener">Watch on YouTube &#8599;</a></p>
       </div>
@@ -640,7 +650,7 @@
         <p>Free. Runs on Windows. Ships with the Quezon City sample dataset.</p>
         <div class="cta">
           <a class="btn btn-primary"
-             href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">
+             href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest/download/Project.ACTS-1.0.1.Setup.exe">
             ⬇ Download for Windows
           </a>
           <a class="btn btn-ghost"
@@ -686,7 +696,7 @@
         <div class="foot-col">
           <h4>Get it</h4>
           <ul>
-            <li><a href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest">Download</a></li>
+            <li><a href="https://github.com/Jacob-DelosAngeles/acts-project/releases/latest/download/Project.ACTS-1.0.1.Setup.exe">Download</a></li>
             <li><a href="https://github.com/Jacob-DelosAngeles/acts-project/releases">Releases</a></li>
             <li><a href="https://github.com/Jacob-DelosAngeles/acts-project">GitHub</a></li>
           </ul>
@@ -703,21 +713,49 @@
   </footer>
 
   <script>
-    // Swap the poster for the YouTube player only once someone clicks.
-    // Keeps the page light and avoids third-party cookies for visitors who
-    // never press play.
-    document.querySelectorAll('.video-embed').forEach(function (facade) {
-      facade.addEventListener('click', function () {
+    (function () {
+      var facades = document.querySelectorAll('.video-embed');
+      if (!facades.length) { return; }
+
+      // The poster stands in until playback actually starts, so the page
+      // never pulls YouTube's player for someone who scrolls straight past.
+      function play(facade, muted) {
         var frame = document.createElement('iframe');
         frame.src = 'https://www.youtube-nocookie.com/embed/' +
-          facade.dataset.videoId + '?autoplay=1&rel=0';
+          facade.dataset.videoId +
+          '?autoplay=1&rel=0&playsinline=1' + (muted ? '&mute=1' : '');
         frame.title = 'Project ACTS software demo';
         frame.allow = 'accelerometer; autoplay; clipboard-write; ' +
           'encrypted-media; gyroscope; picture-in-picture; web-share';
         frame.allowFullscreen = true;
         facade.replaceWith(frame);
+      }
+
+      var reduceMotion = window.matchMedia &&
+        window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+      Array.prototype.forEach.call(facades, function (facade) {
+        // A click is a user gesture, so playback may start with sound.
+        facade.addEventListener('click', function () { play(facade, false); });
+
+        // Starting on scroll is not a gesture, and every browser refuses
+        // unprompted playback unless it is muted — so this start is silent
+        // and the visitor unmutes from YouTube's own controls. Skipped for
+        // anyone who asked for reduced motion, and for browsers without
+        // IntersectionObserver, both of which fall back to click-to-play.
+        if (reduceMotion || !('IntersectionObserver' in window)) { return; }
+
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (!entry.isIntersecting) { return; }
+            observer.disconnect();
+            play(facade, true);
+          });
+        }, { threshold: 0.5 });
+
+        observer.observe(facade);
       });
-    });
+    })();
   </script>
 </body>
 </html>
