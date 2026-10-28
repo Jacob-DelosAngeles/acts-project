@@ -19,3 +19,33 @@ contextBridge.exposeInMainWorld('actsEngine', {
    */
   runModels: (csvText) => ipcRenderer.invoke('acts:run-models', csvText),
 });
+
+// Sign-in runs in the main process; the renderer only learns who is signed
+// in. The session file and the sign-in code never cross this bridge.
+contextBridge.exposeInMainWorld('actsAuth', {
+  /**
+   * The current session, or null when signed out or expired.
+   * @return {Promise<Object|null>} {user, organization, org_role, ...}.
+   */
+  getSession: () => ipcRenderer.invoke('auth:get-session'),
+
+  /**
+   * Opens the browser to sign in and resolves once it completes.
+   * @return {Promise<Object>} The new session.
+   */
+  signIn: () => ipcRenderer.invoke('auth:sign-in'),
+
+  /** @return {Promise<void>} Abandons a sign-in in progress. */
+  cancel: () => ipcRenderer.invoke('auth:cancel'),
+
+  /** @return {Promise<void>} Forgets the session on this computer. */
+  signOut: () => ipcRenderer.invoke('auth:sign-out'),
+
+  /**
+   * Receives the sign-in URL, to offer for copying if no browser opens.
+   * @param {Function} callback - Called with the URL string.
+   */
+  onLoginUrl: (callback) => {
+    ipcRenderer.on('auth:login-url', (event, url) => callback(url));
+  },
+});
