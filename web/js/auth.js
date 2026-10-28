@@ -9,7 +9,7 @@ window.ACTS_AUTH = {
   API_BASE: 'https://acts-api-d65l.onrender.com',
   // Bump with each desktop release; the filename carries the version.
   DOWNLOAD_URL: 'https://github.com/Jacob-DelosAngeles/acts-project' +
-    '/releases/latest/download/Project.ACTS-1.0.1.Setup.exe',
+    '/releases/latest/download/Project.ACTS-1.0.2.Setup.exe',
 };
 
 (function() {
