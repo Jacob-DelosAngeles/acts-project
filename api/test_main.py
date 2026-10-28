@@ -3,7 +3,9 @@
 import io
 import json
 import os
+import time
 
+import jwt
 import pytest
 
 import main
@@ -427,3 +429,209 @@ class TestBodySizeCap:
         )
 
         assert response.status_code == 413
+
+
+class TestClerkToken:
+    """_verify_clerk_token against a locally generated signing key."""
+
+    ISSUER = "https://acts.clerk.accounts.dev"
+
+    @pytest.fixture
+    def signing_key(self, mocker):
+        from cryptography.hazmat.primitives.asymmetric import rsa
+
+        key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+        mocker.patch.object(main, "CLERK_ISSUER", self.ISSUER)
+        mocker.patch.object(
+            main, "CLERK_AUTHORIZED_PARTIES", ["https://acts.example"]
+        )
+        mocker.patch.object(
+            main, "_clerk_jwks", return_value={"k1": key.public_key()}
+        )
+        return key
+
+    def _token(self, key, **overrides):
+        now = int(time.time())
+        claims = {
+            "sub": "user_1",
+            "iss": self.ISSUER,
+            "azp": "https://acts.example",
+            "iat": now,
+            "exp": now + 60,
+        }
+        claims.update(overrides)
+        return jwt.encode(
+            claims, key, algorithm="RS256", headers={"kid": "k1"}
+        )
+
+    def test__valid_token__returns_sub(self, signing_key):
+        assert main._verify_clerk_token(self._token(signing_key)) == "user_1"
+
+    @pytest.mark.parametrize(
+        "overrides",
+        [
+            {"iss": "https://someone-else.clerk.accounts.dev"},
+            {"azp": "https://evil.example"},
+            {"exp": 1},
+        ],
+    )
+    def test__bad_claims__rejected(self, signing_key, overrides):
+        with pytest.raises(jwt.InvalidTokenError):
+            main._verify_clerk_token(self._token(signing_key, **overrides))
+
+
+class TestDesktopAuth:
+    client = main.app.test_client()
+
+    MEMBER = {
+        "clerk_id": "user_1",
+        "email": "adviser@example.com",
+        "full_name": "Ada Adviser",
+        "organization": {"id": "org_1", "name": "ACTS Team", "slug": "acts"},
+        "org_role": "org:member",
+    }
+    BEARER = {"Authorization": "Bearer token"}
+
+    @pytest.fixture(autouse=True)
+    def signed_in(self, mocker):
+        mocker.patch.object(main, "_verify_clerk_token", return_value="user_1")
+        main._desktop_codes.clear()
+
+    def _code(self):
+        response = self.client.post(
+            "/auth/desktop/code", json={}, headers=self.BEARER
+        )
+        assert response.status_code == 200
+        return response.json["code"]
+
+    def test__code__requires_bearer(self):
+        response = self.client.post("/auth/desktop/code", json={})
+
+        assert response.status_code == 401
+
+    def test__code__member_gets_code(self, mocker):
+        mocker.patch.object(main, "_clerk_identity", return_value=self.MEMBER)
+
+        response = self.client.post(
+            "/auth/desktop/code", json={}, headers=self.BEARER
+        )
+
+        assert response.status_code == 200
+        assert response.json["expires_in"] == main.DESKTOP_CODE_TTL_SECONDS
+
+    def test__code__no_team_is_403(self, mocker):
+        mocker.patch.object(
+            main,
+            "_clerk_identity",
+            return_value={
+                **self.MEMBER,
+                "organization": None,
+                "org_role": None,
+            },
+        )
+
+        response = self.client.post(
+            "/auth/desktop/code", json={}, headers=self.BEARER
+        )
+
+        assert response.status_code == 403
+        assert response.json["reason"] == "not_on_team"
+
+    def test__code__clerk_down_is_503_not_403(self, mocker):
+        mocker.patch.object(
+            main, "_clerk_identity", side_effect=main.ClerkUnavailable("down")
+        )
+
+        response = self.client.post(
+            "/auth/desktop/code", json={}, headers=self.BEARER
+        )
+
+        assert response.status_code == 503
+
+    def test__exchange__works_once(self, mocker):
+        mocker.patch.object(main, "_clerk_identity", return_value=self.MEMBER)
+        code = self._code()
+
+        exchange = {"code": code}
+        first = self.client.post("/auth/desktop/exchange", json=exchange)
+        second = self.client.post("/auth/desktop/exchange", json=exchange)
+
+        assert first.status_code == 200
+        assert first.json["email"] == "adviser@example.com"
+        assert first.json["organization"]["name"] == "ACTS Team"
+        assert second.status_code == 400
+
+    def test__exchange__expired_code_rejected(self, mocker):
+        mocker.patch.object(main, "_clerk_identity", return_value=self.MEMBER)
+        code = self._code()
+        later = time.time() + main.DESKTOP_CODE_TTL_SECONDS + 1
+        mocker.patch.object(main.time, "time", return_value=later)
+
+        response = self.client.post(
+            "/auth/desktop/exchange", json={"code": code}
+        )
+
+        assert response.status_code == 400
+
+    def test__exchange__unknown_code_rejected(self):
+        response = self.client.post(
+            "/auth/desktop/exchange", json={"code": "guess"}
+        )
+
+        assert response.status_code == 400
+
+
+class TestClerkIdentity:
+    USER = {
+        "first_name": "Ada",
+        "last_name": "Adviser",
+        "primary_email_address_id": "e2",
+        "email_addresses": [
+            {"id": "e1", "email_address": "old@example.com"},
+            {"id": "e2", "email_address": "adviser@example.com"},
+        ],
+    }
+
+    def _membership(self, org_id, name, role="org:member"):
+        return {
+            "organization": {"id": org_id, "name": name, "slug": org_id},
+            "role": role,
+        }
+
+    def _patch(self, mocker, memberships):
+        def fake(path):
+            if path.endswith("/organization_memberships?limit=100"):
+                return {"data": memberships}
+            return self.USER
+
+        mocker.patch.object(main, "_clerk_api", side_effect=fake)
+
+    def test__primary_email_and_selected_team(self, mocker):
+        self._patch(
+            mocker,
+            [
+                self._membership("org_1", "One"),
+                self._membership("org_2", "Two"),
+            ],
+        )
+
+        identity = main._clerk_identity("user_1", "org_2")
+
+        assert identity["email"] == "adviser@example.com"
+        assert identity["full_name"] == "Ada Adviser"
+        assert identity["organization"]["name"] == "Two"
+
+    def test__foreign_org_falls_back_to_first_team(self, mocker):
+        self._patch(mocker, [self._membership("org_1", "One")])
+
+        identity = main._clerk_identity("user_1", "org_someone_elses")
+
+        assert identity["organization"]["id"] == "org_1"
+
+    def test__no_memberships__no_team(self, mocker):
+        self._patch(mocker, [])
+
+        identity = main._clerk_identity("user_1")
+
+        assert identity["organization"] is None
+        assert identity["org_role"] is None

@@ -11,15 +11,21 @@ import hmac
 import io
 import json
 import os
+import secrets
+import threading
+import time
 import uuid
 from typing import Union
 
 from flask import Flask
+from flask import g
 from flask import request
 from flask_cors import CORS
 from google.cloud import storage
 from google.oauth2 import service_account
+import jwt
 import pandas as pd
+import requests
 
 import acts.core as acts
 from acts import runner
@@ -51,6 +57,32 @@ MAX_UPLOAD_BYTES = int(
 # bucket policy can be scoped to it.
 ALLOWED_UPLOAD_SUFFIXES = (".csv",)
 UPLOAD_PREFIX = "inputs/"
+
+# Clerk owns identity for the web dashboard and the desktop sign-in. Read
+# lazily like the storage settings, so the API still boots (and the model
+# endpoints keep working) on a deploy where Clerk isn't configured yet; the
+# auth routes answer 503 until it is.
+#   CLERK_ISSUER: the Frontend API URL, e.g. https://foo.clerk.accounts.dev
+#   CLERK_SECRET_KEY: Backend API key (sk_...). Server only, never shipped.
+#   CLERK_AUTHORIZED_PARTIES: comma-separated web origins allowed to mint
+#     tokens for this API. Checked against the token's azp claim so a token
+#     issued to some other site on the same Clerk instance is refused.
+CLERK_ISSUER = os.environ.get("CLERK_ISSUER", "").rstrip("/")
+CLERK_SECRET_KEY = os.environ.get("CLERK_SECRET_KEY")
+CLERK_AUTHORIZED_PARTIES = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get("CLERK_AUTHORIZED_PARTIES", "").split(",")
+    if origin.strip()
+]
+CLERK_API_BASE = "https://api.clerk.com/v1"
+
+# Clerk rotates signing keys rarely; an hour of caching keeps every request
+# from fetching the JWKS, and an unknown kid forces a refetch anyway.
+JWKS_TTL_SECONDS = 60 * 60
+
+# A desktop sign-in code only has to survive one browser redirect to the
+# loopback callback, so it is short-lived and single-use.
+DESKTOP_CODE_TTL_SECONDS = 60
 
 
 logger = logging.get_logger(__name__)
@@ -116,6 +148,257 @@ def require_api_key(view):
         return view(*args, **kwargs)
 
     return wrapper
+
+
+class ClerkUnavailable(Exception):
+    """Clerk could not be reached, or isn't configured on this server."""
+
+
+_jwks_lock = threading.Lock()
+_jwks_cache = {"keys": {}, "fetched_at": 0.0}
+
+
+def _clerk_jwks(force: bool = False) -> dict:
+    """Return Clerk's signing keys by kid, fetched at most hourly.
+
+    Fetched with requests (certifi's CA bundle) rather than PyJWKClient's
+    urllib, which on Windows Python 3.10+ rejects Clerk's chain under
+    VERIFY_X509_STRICT and made local development fail to verify anything.
+    """
+    if not CLERK_ISSUER:
+        raise ClerkUnavailable("CLERK_ISSUER is not configured.")
+
+    with _jwks_lock:
+        age = time.time() - _jwks_cache["fetched_at"]
+        if force or not _jwks_cache["keys"] or age > JWKS_TTL_SECONDS:
+            try:
+                response = requests.get(
+                    CLERK_ISSUER + "/.well-known/jwks.json", timeout=10
+                )
+                response.raise_for_status()
+            except requests.RequestException as error:
+                raise ClerkUnavailable(str(error)) from error
+
+            _jwks_cache["keys"] = {
+                key["kid"]: jwt.PyJWK(key).key
+                for key in response.json().get("keys", [])
+            }
+            _jwks_cache["fetched_at"] = time.time()
+
+        return _jwks_cache["keys"]
+
+
+def _verify_clerk_token(token: str) -> str:
+    """Verify a Clerk session JWT and return its user id (sub).
+
+    Raises jwt.InvalidTokenError for anything that isn't a current token
+    issued by our Clerk instance to one of our own web origins.
+    """
+    kid = jwt.get_unverified_header(token).get("kid")
+    keys = _clerk_jwks()
+    if kid not in keys:
+        # A rotated key: refetch once before giving up on it.
+        keys = _clerk_jwks(force=True)
+    if kid not in keys:
+        raise jwt.InvalidTokenError("Unknown signing key.")
+
+    claims = jwt.decode(
+        token,
+        keys[kid],
+        algorithms=["RS256"],
+        issuer=CLERK_ISSUER,
+        leeway=5,
+        options={"require": ["exp", "iat", "sub"]},
+    )
+
+    if CLERK_AUTHORIZED_PARTIES:
+        if claims.get("azp", "").rstrip("/") not in CLERK_AUTHORIZED_PARTIES:
+            raise jwt.InvalidTokenError("Token was issued to another site.")
+
+    return claims["sub"]
+
+
+def require_clerk_user(view):
+    """Gate a view behind a valid Clerk session; sets g.clerk_user_id."""
+
+    @functools.wraps(view)
+    def wrapper(*args, **kwargs):
+        header = request.headers.get("Authorization", "")
+        token = header[len("Bearer "):] if header.startswith("Bearer ") else ""
+        if not token:
+            return _auth_error(401, "Sign in required.")
+
+        try:
+            g.clerk_user_id = _verify_clerk_token(token)
+        except ClerkUnavailable:
+            return _auth_error(503, "Sign-in service is unavailable.")
+        except jwt.InvalidTokenError:
+            return _auth_error(401, "Session is invalid or expired.")
+
+        return view(*args, **kwargs)
+
+    return wrapper
+
+
+def _auth_error(code: int, error: str, reason: str = ""):
+    messages = {
+        400: "Bad Request",
+        401: "Unauthorized",
+        403: "Forbidden",
+        503: "Service Unavailable",
+    }
+    body = {
+        "error": error,
+        "status": {"code": code, "message": messages[code]},
+    }
+    if reason:
+        body["reason"] = reason
+    return body, code
+
+
+def _clerk_api(path: str) -> dict:
+    """GET a Clerk Backend API resource with the server's secret key."""
+    if not CLERK_SECRET_KEY:
+        raise ClerkUnavailable("CLERK_SECRET_KEY is not configured.")
+
+    try:
+        response = requests.get(
+            CLERK_API_BASE + path,
+            headers={"Authorization": "Bearer " + CLERK_SECRET_KEY},
+            timeout=10,
+        )
+        response.raise_for_status()
+    except requests.RequestException as error:
+        raise ClerkUnavailable(str(error)) from error
+
+    return response.json()
+
+
+def _clerk_identity(clerk_user_id: str, org_id: str = "") -> dict:
+    """Return who a Clerk user is and which team they act for.
+
+    Email and name come from the Backend API because Clerk session tokens
+    omit them. Membership also comes from the Backend API, never from the
+    token's org claims: Clerk only sets those while an organization is
+    active in that browser session, so reading them made a real member
+    look team-less. organization is None when the user has no team.
+    """
+    user = _clerk_api("/users/{}".format(clerk_user_id))
+    memberships = _clerk_api(
+        "/users/{}/organization_memberships?limit=100".format(clerk_user_id)
+    ).get("data", [])
+
+    primary_id = user.get("primary_email_address_id")
+    email = next(
+        (
+            address["email_address"]
+            for address in user.get("email_addresses", [])
+            if address.get("id") == primary_id
+        ),
+        "",
+    )
+    full_name = " ".join(
+        part for part in (user.get("first_name"), user.get("last_name"))
+        if part
+    )
+
+    # Act for the team the browser has selected when it is one of the
+    # user's own; otherwise fall back to their first team.
+    chosen = next(
+        (m for m in memberships if m["organization"]["id"] == org_id),
+        memberships[0] if memberships else None,
+    )
+
+    return {
+        "clerk_id": clerk_user_id,
+        "email": email,
+        "full_name": full_name or email,
+        "organization": {
+            "id": chosen["organization"]["id"],
+            "name": chosen["organization"]["name"],
+            "slug": chosen["organization"].get("slug"),
+        } if chosen else None,
+        "org_role": chosen["role"] if chosen else None,
+    }
+
+
+# One-time desktop sign-in codes, held in this process's memory. Correct
+# while the API runs as a single worker (render.yaml: --workers 1, threads
+# share this dict under the lock). With more workers or instances the
+# exchange can land on a worker that never issued the code — move these to
+# Redis or a table (single-use delete + TTL) before scaling out.
+_desktop_codes_lock = threading.Lock()
+_desktop_codes = {}
+
+
+@app.route("/auth/me", methods=["GET"])
+@require_clerk_user
+def auth_me() -> dict:
+    """Who the signed-in web user is, and their team (None if they have none).
+
+    The dashboard gates on this rather than on Clerk's client state, so the
+    invite-only rule is enforced by the server.
+    """
+    try:
+        return _clerk_identity(g.clerk_user_id, request.args.get("org_id", ""))
+    except ClerkUnavailable:
+        return _auth_error(503, "Sign-in service is unavailable.")
+
+
+@app.route("/auth/desktop/code", methods=["POST"])
+@require_clerk_user
+def desktop_code() -> dict:
+    """Issue a one-time code the browser hands back to the desktop app.
+
+    This is the invite gate for the desktop: someone who signed in to Clerk
+    but was never invited to a team gets a 403, never a code. A Clerk outage
+    is a 503, not a 403, so a real member is never told they have no team.
+    """
+    payload = request.get_json(silent=True) or {}
+
+    try:
+        identity = _clerk_identity(
+            g.clerk_user_id, str(payload.get("org_id") or "")
+        )
+    except ClerkUnavailable:
+        return _auth_error(503, "Sign-in service is unavailable.")
+
+    if identity["organization"] is None:
+        return _auth_error(
+            403,
+            "Your account is not on an ACTS team yet. "
+            "Ask your team admin for an invite.",
+            reason="not_on_team",
+        )
+
+    code = secrets.token_urlsafe(32)
+    now = time.time()
+    with _desktop_codes_lock:
+        # Sweep expired codes so abandoned sign-ins don't accumulate.
+        for stale in [c for c, v in _desktop_codes.items() if v[0] < now]:
+            del _desktop_codes[stale]
+        _desktop_codes[code] = (now + DESKTOP_CODE_TTL_SECONDS, identity)
+
+    return {"code": code, "expires_in": DESKTOP_CODE_TTL_SECONDS}
+
+
+@app.route("/auth/desktop/exchange", methods=["POST"])
+def desktop_exchange() -> dict:
+    """Trade a one-time code for the signed-in identity.
+
+    Public on purpose: the desktop has no Clerk session, and the code itself
+    is the proof — unguessable, single-use and gone within a minute.
+    """
+    payload = request.get_json(silent=True) or {}
+    code = str(payload.get("code") or "")
+
+    with _desktop_codes_lock:
+        entry = _desktop_codes.pop(code, None)
+
+    if entry is None or entry[0] < time.time():
+        return _auth_error(400, "Sign-in code is invalid or expired.")
+
+    return entry[1]
 
 
 def _safe_blob_name(filename: str) -> str:
