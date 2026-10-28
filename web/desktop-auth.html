@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Desktop sign-in — Project ACTS</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <a class="brand" href="/">
+        <img src="/img/acts-amark.png" alt="" />
+        <b>Project <span>ACTS</span></b>
+      </a>
+    </div>
+  </header>
+
+  <main class="center">
+    <span class="eyebrow">Desktop sign-in</span>
+    <div id="loading" class="spinner" role="status" aria-label="Loading"></div>
+    <div id="sign-in"></div>
+
+    <div id="confirm" class="card center" hidden>
+      <h2>Sign in to the ACTS desktop app?</h2>
+      <p class="muted">The desktop app will be signed in as
+        <b id="confirm-email"></b>.</p>
+      <button id="continue" class="btn btn-navy" type="button">Continue</button>
+      <button id="switch" class="btn btn-ghost" type="button">Use another
+        account</button>
+    </div>
+
+    <div id="sending" class="card center" hidden>
+      <div class="spinner" role="status" aria-label="Signing in"></div>
+      <p class="muted">Handing your sign-in back to the desktop app…</p>
+    </div>
+
+    <div id="no-team" class="card center" hidden>
+      <h2>Your account isn't on an ACTS team</h2>
+      <p class="muted">ACTS is invite-only. Ask your team admin for an invite,
+        then try signing in from the desktop app again.</p>
+    </div>
+
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    (async function() {
+      const auth = window.ACTS_AUTH;
+
+      function only(id) {
+        ['loading', 'confirm', 'sending', 'no-team', 'error']
+            .forEach(function(other) {
+              document.getElementById(other).hidden = other !== id;
+            });
+      }
+
+      function fail(text) {
+        document.getElementById('error').textContent = text;
+        only('error');
+      }
+
+      // The callback must be the desktop app's own loopback listener. Any
+      // other target would hand a sign-in code to whoever wrote the link.
+      function parseCallback(raw) {
+        let url;
+        try {
+          url = new URL(raw);
+        } catch (error) {
+          return null;
+        }
+        const ok = url.protocol === 'http:' &&
+          url.hostname === '127.0.0.1' &&
+          url.pathname === '/desktop-callback' &&
+          !!url.searchParams.get('state') &&
+          !url.username && !url.password;
+        return ok ? url : null;
+      }
+
+      const callback = parseCallback(
+          new URLSearchParams(location.search).get('cb') || '');
+      if (!callback) {
+        fail('This sign-in link is invalid. Start again from the ACTS ' +
+            'desktop app by clicking “Sign in with your browser”.');
+        return;
+      }
+
+      try {
+        const clerk = await auth.loadClerk();
+
+        if (!clerk.user) {
+          only('');
+          clerk.mountSignIn(document.getElementById('sign-in'), {
+            // Come back to this same page, callback included.
+            forceRedirectUrl: location.href,
+            appearance: {elements: {footerAction: {display: 'none'}}},
+          });
+          return;
+        }
+
+        // Ask before handing over the session: on a shared computer the
+        // browser may still be signed in as someone else.
+        document.getElementById('confirm-email').textContent =
+          clerk.user.primaryEmailAddress ?
+            clerk.user.primaryEmailAddress.emailAddress : '';
+        only('confirm');
+
+        document.getElementById('switch').addEventListener('click', function() {
+          clerk.signOut({redirectUrl: location.href});
+        });
+
+        document.getElementById('continue').addEventListener(
+            'click', async function() {
+              only('sending');
+              try {
+                await auth.ensureActiveOrg(clerk);
+                const response = await auth.apiFetch('/auth/desktop/code', {
+                  method: 'POST',
+                  headers: {'Content-Type': 'application/json'},
+                  body: JSON.stringify({
+                    org_id: clerk.organization ? clerk.organization.id : null,
+                  }),
+                });
+                const body = await response.json().catch(function() {
+                  return {};
+                });
+
+                if (response.status === 403 && body.reason === 'not_on_team') {
+                  only('no-team');
+                  return;
+                }
+                if (!response.ok || !body.code) {
+                  fail(body.error || ('Sign-in failed (' +
+                      response.status + '). Please try again.'));
+                  return;
+                }
+
+                callback.searchParams.set('code', body.code);
+                location.replace(callback.toString());
+              } catch (error) {
+                fail(error.message);
+              }
+            });
+      } catch (error) {
+        fail(error.message);
+      }
+    })();
+  </script>
+</body>
+</html>

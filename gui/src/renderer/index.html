@@ -72,6 +72,29 @@
         .btn-primary {
             background-color: #00375d;
         }
+
+        .acts-user {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-right: 12px;
+            font-size: 14px;
+        }
+
+        .acts-user__team {
+            opacity: 0.75;
+        }
+
+        .acts-user__signout {
+            margin-left: 6px;
+            padding: 3px 10px;
+            border: 1px solid currentColor;
+            border-radius: 999px;
+            background: transparent;
+            color: inherit;
+            font-size: 12.5px;
+            cursor: pointer;
+        }
     </style>
 </head>
 
@@ -100,34 +123,29 @@
                             <div class="row">
                                 <div class="col-md-9 col-lg-8 mx-auto">
                                     <h3 class="login-heading text-center ">WELCOME</h3>
-                                    <div class="text-center mb-4">Enter your credentials to get started.
+                                    <div class="text-center mb-4">Sign in with your ACTS account to get started.
                                     </div>
-                                    <!-- Sign In Form -->
-                                    <form id="acts-login">
-                                        <div class="form-floating mb-3">
-                                            <input required type="text" class="form-control" id="form-name"
-                                                   placeholder="Name">
-                                            <label for="form-name">Name</label>
-                                        </div>
-                                        <div class="form-floating mb-3">
-                                            <input required type="Email" class="form-control" id="form-email"
-                                                   placeholder="Email">
-                                            <label for="form-email">Email</label>
-                                        </div>
+                                    <!-- Sign-in happens in the system browser; see src/main/auth.js. -->
+                                    <div id="acts-signin" class="d-grid">
+                                        <button id="btn-sign-in" class="btn btn-lg btn-primary btn-login text-uppercase fw-bold mb-2"
+                                                type="button">SIGN IN WITH YOUR BROWSER
+                                        </button>
+                                    </div>
 
-                                        <div class="d-grid">
-                                            <button id="btn-get-started" class="btn btn-lg btn-primary btn-login text-uppercase fw-bold mb-2"
-                                                    type="submit">GET STARTED
-                                            </button>
-
-                                            <button disabled id="btn-loading" class="btn btn-lg btn-primary btn-login text-uppercase fw-bold mb-2"
-                                                    type="button">
-                                                    <span class="spinner-border spinner-border-sm"></span>
-                                                    Please wait...
-                                            </button>
+                                    <div id="acts-signin-waiting" class="text-center" style="display: none">
+                                        <div class="spinner-border text-primary mb-3" role="status"></div>
+                                        <p class="mb-2">Finish signing in in your browser.</p>
+                                        <p class="small text-muted mb-1">Browser didn't open? Copy this link into it:</p>
+                                        <div class="input-group input-group-sm mb-3">
+                                            <input id="signin-link" type="text" class="form-control" readonly>
+                                            <button id="btn-copy-link" class="btn btn-outline-secondary" type="button">Copy</button>
                                         </div>
+                                        <button id="btn-cancel-sign-in" class="btn btn-link btn-sm" type="button">Cancel</button>
+                                    </div>
 
-                                    </form>
+                                    <p id="signin-error" class="text-danger text-center small mt-2" style="display: none"></p>
+                                    <p class="small text-muted text-center mt-3">ACTS is invite-only. No account yet?
+                                        Ask your team admin for an invite.</p>
                                 </div>
                             </div>
                         </div>
@@ -145,6 +163,12 @@
             <span class="mdc-top-app-bar__title">Project <strong>ACTS</strong></span>
         </section>
         <section class="mdc-top-app-bar__section mdc-top-app-bar__section--align-end" role="toolbar">
+            <div id="acts-user" class="acts-user" style="display: none">
+                <span class="material-icons-round">account_circle</span>
+                <span id="acts-user-name"></span>
+                <span id="acts-user-team" class="acts-user__team"></span>
+                <button id="btn-sign-out" class="acts-user__signout" type="button">Sign out</button>
+            </div>
         </section>
     </div>
 </header>

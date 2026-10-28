@@ -45,10 +45,6 @@ ACTS.apis.RUN_MODELS_ENDPOINT = ACTS.apis.API_BASE + '/models/run';
 ACTS.apis.GET_OUTPUTS_ENDPOINT = ACTS.apis.API_BASE + '/outputs/';
 ACTS.apis.PUBLIC_S3_URL = ACTS.apis.API_BASE + '/files/';
 
-// Onboarding backend (the Laravel backend/). Empty until it's deployed —
-// when empty, the get-started form proceeds without calling it.
-ACTS.apis.GET_STARTED_ENDPOINT = '';
-
 // Set locally (do not commit a real value) — a Mapbox token used to be
 // hardcoded in map.js and got caught by GitHub push protection. Rotate the
 // old token on Mapbox's dashboard before using this project again.

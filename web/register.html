@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Join your team — Project ACTS</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <a class="brand" href="/">
+        <img src="/img/acts-amark.png" alt="" />
+        <b>Project <span>ACTS</span></b>
+      </a>
+    </div>
+  </header>
+
+  <main class="center">
+    <div id="loading" class="spinner" role="status" aria-label="Loading"></div>
+    <div id="form"></div>
+    <div id="no-invite" class="card center" hidden>
+      <span class="eyebrow">Invite-only</span>
+      <h2>ACTS accounts start from an invite</h2>
+      <p class="muted">Ask your team admin to invite your email address. The
+        link in that email brings you back here to create your account.</p>
+      <a class="btn btn-navy" href="/sign-in.html">I already have an account</a>
+    </div>
+    <p id="error" class="error" hidden></p>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    (async function() {
+      const auth = window.ACTS_AUTH;
+      const params = new URLSearchParams(location.search);
+      // Clerk appends these to the invitation link's redirect URL. Without a
+      // ticket there is no invitation, so there is no sign-up form at all.
+      const ticket = params.get('__clerk_ticket');
+      const status = params.get('__clerk_status');
+
+      if (!ticket) {
+        document.getElementById('loading').hidden = true;
+        document.getElementById('no-invite').hidden = false;
+        return;
+      }
+
+      try {
+        const clerk = await auth.loadClerk();
+        document.getElementById('loading').hidden = true;
+        if (clerk.user) {
+          location.replace('/dashboard.html');
+          return;
+        }
+        const options = {
+          forceRedirectUrl: '/dashboard.html',
+          signInUrl: '/sign-in.html',
+          signUpUrl: '/register.html',
+        };
+        // An invite sent to someone who already has an account arrives with
+        // status "sign_in": accepting it only needs them to sign in.
+        if (status === 'sign_in') {
+          clerk.mountSignIn(document.getElementById('form'), options);
+        } else {
+          clerk.mountSignUp(document.getElementById('form'), options);
+        }
+      } catch (error) {
+        document.getElementById('loading').hidden = true;
+        const message = document.getElementById('error');
+        message.textContent = error.message;
+        message.hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -4,6 +4,7 @@ const path = require('path');
 const {app, BrowserWindow} = require('electron');
 const {getAssetPath, getHtmlPath} = require('./utils');
 const engine = require('./engine');
+const auth = require('./auth');
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (require('electron-squirrel-startup')) {
@@ -81,6 +82,7 @@ app.whenReady()
     .then(() => {
       // Must be registered before any window can invoke them.
       engine.register();
+      auth.register();
       createWindow();
 
       app.on('activate', () => {
