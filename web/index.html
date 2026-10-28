@@ -109,6 +109,8 @@
     .nav-links a { font-size: 15px; font-weight: 500; color: var(--muted); }
     .nav-links a:hover { color: var(--ink); }
     .nav-cta { display: flex; align-items: center; gap: 14px; }
+    .nav-signin { font-size: 15px; font-weight: 600; color: var(--ink); }
+    .nav-signin:hover { color: var(--gold-deep); }
 
     /* ---------- Sections ---------- */
     section { padding: 92px 0; }
@@ -350,6 +352,7 @@
         <a href="#project">Project</a>
       </nav>
       <div class="nav-cta">
+        <a class="nav-signin" href="/dashboard.html">Sign in</a>
         <!-- Download links point straight at the installer rather than the
              releases page, so a visitor gets a file instead of a listing of
              the .exe plus GitHub's two auto-generated source archives.
@@ -387,7 +390,9 @@
           </div>
           <p class="subnote">Free &amp; open source · Bundled sample dataset:
             Quezon City, Philippines<br>
-            Unsigned installer — Windows may warn on first run
+            Unsigned installer — if Edge says it “isn't commonly
+            downloaded”, open Downloads (Ctrl+J) → ⋯ → Keep → Show more →
+            Keep anyway. Windows may then warn on first run
             (More info → Run anyway).</p>
         </div>
 
@@ -658,8 +663,11 @@
             View source
           </a>
         </div>
-        <p class="subnote">The installer is unsigned — Windows SmartScreen may
-          warn on first run (More info → Run anyway).</p>
+        <p class="subnote">The installer is unsigned. If Edge says it
+          “isn't commonly downloaded”, open Downloads (Ctrl+J) → ⋯ → Keep →
+          Show more → Keep anyway — until then it's only a .crdownload
+          placeholder. Windows SmartScreen may then warn on first run
+          (More info → Run anyway).</p>
       </div>
     </section>
   </main>
