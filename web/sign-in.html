@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sign in — Project ACTS</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <a class="brand" href="/">
+        <img src="/img/acts-amark.png" alt="" />
+        <b>Project <span>ACTS</span></b>
+      </a>
+    </div>
+  </header>
+
+  <main class="center">
+    <div id="loading" class="spinner" role="status" aria-label="Loading"></div>
+    <div id="sign-in"></div>
+    <p id="error" class="error" hidden></p>
+    <p class="notice">ACTS is invite-only. New here? Ask your team admin for
+      an invite — the email link creates your account.</p>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    (async function() {
+      const auth = window.ACTS_AUTH;
+      const params = new URLSearchParams(location.search);
+      const target = auth.safeRedirect(
+          params.get('redirect_url'), '/dashboard.html');
+
+      try {
+        const clerk = await auth.loadClerk();
+        if (clerk.user) {
+          location.replace(target);
+          return;
+        }
+        document.getElementById('loading').hidden = true;
+        clerk.mountSignIn(document.getElementById('sign-in'), {
+          forceRedirectUrl: target,
+          signUpUrl: '/register.html',
+          // Invite-only: sign-up starts from an invitation link, never from
+          // a "Sign up" link on this form.
+          appearance: {elements: {footerAction: {display: 'none'}}},
+        });
+      } catch (error) {
+        document.getElementById('loading').hidden = true;
+        const message = document.getElementById('error');
+        message.textContent = error.message;
+        message.hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — Project ACTS</title>
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/auth.css" />
+</head>
+<body>
+  <header>
+    <div class="nav">
+      <a class="brand" href="/">
+        <img src="/img/acts-amark.png" alt="" />
+        <b>Project <span>ACTS</span></b>
+      </a>
+      <div class="nav-tools">
+        <div id="org-switcher"></div>
+        <div id="user-button"></div>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div id="loading" class="center">
+      <div class="spinner" role="status" aria-label="Loading"></div>
+    </div>
+
+    <div id="no-team" class="card center" hidden>
+      <span class="eyebrow">Not on a team yet</span>
+      <h2>Your account isn't on an ACTS team</h2>
+      <p class="muted">ACTS is invite-only. Ask your team admin to invite
+        <b id="no-team-email"></b>, then open the link in that email.</p>
+      <button id="no-team-sign-out" class="btn btn-ghost"
+              type="button">Sign out</button>
+    </div>
+
+    <p id="error" class="error center" hidden></p>
+
+    <div id="dashboard" hidden>
+      <span class="eyebrow">Dashboard</span>
+      <h1 style="font-size: clamp(28px, 4vw, 38px); margin: 6px 0 24px;">
+        Welcome, <span id="greeting-name"></span></h1>
+
+      <div class="dash-grid">
+        <section class="card">
+          <h2>Your account</h2>
+          <dl class="facts">
+            <dt>Name</dt><dd id="fact-name"></dd>
+            <dt>Email</dt><dd id="fact-email"></dd>
+            <dt>Team</dt><dd id="fact-team"></dd>
+            <dt>Role</dt><dd id="fact-role"></dd>
+          </dl>
+        </section>
+
+        <section class="card">
+          <h2>Desktop app</h2>
+          <p class="muted">Models fit on your own computer — your survey data
+            never leaves it.</p>
+          <ol class="steps">
+            <li>Download and install ACTS for Windows.</li>
+            <li>Open it and click <b>Sign in with your browser</b>.</li>
+            <li>After that it keeps working offline for 30 days.</li>
+          </ol>
+          <a id="download" class="btn btn-primary" href="#">⬇ Download for
+            Windows</a>
+        </section>
+      </div>
+
+      <section id="team-admin" class="team-admin" hidden>
+        <h2>Manage your team</h2>
+        <p class="notice" style="margin-bottom: 14px;">Invite members by email
+          under <b>Members</b>. Only invited people can create an account.</p>
+        <div id="org-profile"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/auth.js"></script>
+  <script>
+    (async function() {
+      const auth = window.ACTS_AUTH;
+
+      function show(id) {
+        document.getElementById('loading').hidden = true;
+        document.getElementById(id).hidden = false;
+      }
+
+      function fail(text) {
+        const message = document.getElementById('error');
+        message.textContent = text;
+        show('error');
+      }
+
+      function setText(id, value) {
+        document.getElementById(id).textContent = value || '—';
+      }
+
+      try {
+        const clerk = await auth.loadClerk();
+        if (!clerk.user) {
+          location.replace('/sign-in.html?redirect_url=' +
+              encodeURIComponent('/dashboard.html'));
+          return;
+        }
+
+        clerk.mountUserButton(document.getElementById('user-button'));
+        await auth.ensureActiveOrg(clerk);
+
+        // The server decides whether this account is on a team; the
+        // browser's Clerk state is only a hint.
+        const orgId = clerk.organization ? clerk.organization.id : '';
+        const response = await auth.apiFetch(
+            '/auth/me?org_id=' + encodeURIComponent(orgId));
+        if (!response.ok) {
+          fail('Could not load your account (' + response.status +
+              '). Please try again in a moment.');
+          return;
+        }
+        const me = await response.json();
+
+        if (!me.organization) {
+          setText('no-team-email', me.email);
+          document.getElementById('no-team-sign-out')
+              .addEventListener('click', function() {
+                clerk.signOut();
+              });
+          show('no-team');
+          return;
+        }
+
+        clerk.mountOrganizationSwitcher(
+            document.getElementById('org-switcher'), {
+              hidePersonal: true,
+              afterSelectOrganizationUrl: '/dashboard.html',
+            });
+
+        setText('greeting-name', me.full_name.split(' ')[0]);
+        setText('fact-name', me.full_name);
+        setText('fact-email', me.email);
+        setText('fact-team', me.organization.name);
+        setText('fact-role',
+            me.org_role === 'org:admin' ? 'Team admin' : 'Member');
+        document.getElementById('download').href = auth.DOWNLOAD_URL;
+
+        if (me.org_role === 'org:admin') {
+          document.getElementById('team-admin').hidden = false;
+          clerk.mountOrganizationProfile(
+              document.getElementById('org-profile'));
+        }
+        show('dashboard');
+      } catch (error) {
+        fail(error.message);
+      }
+    })();
+  </script>
+</body>
+</html>
