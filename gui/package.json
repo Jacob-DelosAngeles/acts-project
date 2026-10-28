@@ -1,7 +1,7 @@
 {
   "name": "acts-ui",
   "productName": "Project ACTS",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Project ACTS",
   "main": "src/main/index.js",
   "scripts": {
